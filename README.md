@@ -18,7 +18,7 @@ the same way (we're a thin wrapper around vendors).
 > borrows — and a service model where the provider runs an **Agent Success Manager** instead
 > of a Customer Success Manager.
 
-And the abstraction level-up (SPEC.md §5):
+And the abstraction level-up ([THESIS.md](./THESIS.md)):
 
 > We move the client up one rung — from owning a **VPS** (a server that degrades the moment you
 > stop maintaining it) to owning a **personal API** (a versioned contract their agent calls).
@@ -37,7 +37,7 @@ And the abstraction level-up (SPEC.md §5):
 | **Storage** | hold state + deliverables, serve them (`FileSystem` port) | Archil disk on R2 + CDN |
 | **Todo** | track and coordinate the work (`/todo` state machine) | Convex DB |
 
-The first build is a **single-node, personal** deployment (SPEC.md §16). Compute and storage
+The first build is a **single-node, personal** deployment (SPEC.md §12). Compute and storage
 are split into two planes: a **Sandbox** (Freestyle: compute + git versioned workspace) and a
 **FileSystem** (Archil backed by an R2 bucket = durable blobs + a personal CDN).
 
@@ -59,7 +59,7 @@ mcp/         dependency-free gateway client for agents
 
 Key boundary: vendor SDKs need Node, so vendor calls run in `convex/node.ts`; the isolate-runtime
 HTTP layer delegates to them via `ctx.runAction`. Read-only enforcement and scheduling/memory are
-deliberately the *client agent's* job, not the body's (SPEC §2, §16).
+deliberately the *client agent's* job, not the body's (SPEC §9; THESIS).
 
 ## Quickstart
 
@@ -83,10 +83,13 @@ Connect real providers one at a time by setting their keys (see `.env.example` a
 
 ## Docs
 
-- [SPEC.md](./SPEC.md) — the formal protocol: six primitives, body/brain split, the durable-layer
-  argument, the VPS→personal-API abstraction, the two-plane compute/storage model, the service
-  model + Agent Success Manager, the `/todo` loop, the budget envelope, extensibility, and the
-  single-node Convex reference deployment (§16).
+- [SPEC.md](./SPEC.md) — the **normative protocol**, implementable by anyone (OAuth-style):
+  roles, conformance, the six primitive interfaces, the Todo resource + lifecycle state machine,
+  the Gateway HTTP API + auth, the budget envelope, security, extensibility, and the single-node
+  Convex reference deployment.
+- [THESIS.md](./THESIS.md) — the **reasoning and philosophy**: body/brain split, dependency
+  inversion, why raw-API+skills rots, the deterministic firebreak, cost control, the
+  VPS→personal-API ladder, Backend-for-Agent, and the Agent Success Manager.
 - [SCENARIOS.md](./SCENARIOS.md) — concrete walkthrough: a creative agency delivering 10
   ads/month for a Claude-native founder, primitive by primitive, plus adding a `publish` primitive.
 - [GETTING_STARTED.md](./GETTING_STARTED.md) — connect providers (or run on mocks), env vars, and
@@ -104,4 +107,4 @@ Working scaffold; **not yet integration-tested against live vendors.**
   **smoke-tested live in mock mode**.
 - **Not yet verified:** live vendor round-trips (need real keys); an integration-test layer.
 - **Open questions** that gate live use: Freestyle VM pricing/limits, A2P 10DLC registration for
-  SMS, AgentCard KYC/spend-controls, R2 bucket + CDN domain setup (SPEC §11 / §15).
+  SMS, AgentCard KYC/spend-controls, R2 bucket + CDN domain setup (THESIS §13).
