@@ -37,6 +37,14 @@ vendor keys — connect real providers one at a time. See [GETTING_STARTED.md](.
 > borrows — and a service model where the provider runs an **Agent Success Manager** instead
 > of a Customer Success Manager.
 
+And the abstraction level-up (SPEC.md §5):
+
+> We move the client up one rung — from owning a **VPS** (a server that degrades the moment you
+> stop maintaining it) to owning a **personal API** (a versioned contract their agent calls).
+> It's the **Backend-for-Frontend** pattern from web dev, reframed as a **Backend-for-Agent**:
+> one tuned contract over six messy vendors. The thing that rots now lives behind the contract,
+> on the provider's side — the client never owns the part that degrades.
+
 ## Status
 
 Draft. Organizing thoughts before any build. See SPEC.md §11 for open questions that gate

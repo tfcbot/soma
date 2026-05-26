@@ -5,8 +5,8 @@ import type { TodoStore, NewTodo } from "../ports/todo";
 import type { Phone } from "../ports/phone";
 import type { Email } from "../ports/email";
 import type { Wallet } from "../ports/wallet";
-import type { Computer } from "../ports/computer";
-import type { Storage } from "../ports/storage";
+import type { Sandbox } from "../ports/sandbox";
+import type { FileSystem } from "../ports/filesystem";
 
 // The composition root injects one adapter (real or mock) per port.
 export interface Ports {
@@ -14,8 +14,8 @@ export interface Ports {
   phone: Phone;
   email: Email;
   wallet: Wallet;
-  computer: Computer;
-  storage: Storage;
+  sandbox: Sandbox;
+  filesystem: FileSystem;
 }
 
 // Use-cases that orchestrate the primitives. Pure of any vendor or host concern.
@@ -74,6 +74,33 @@ export class Assistant {
     });
     if (!charge.ok) throw new Error(`Wallet charge failed: ${charge.id}`);
     return this.ports.todos.save({ ...todo, budget: nextBudget, updatedAt: Date.now() });
+  }
+
+  // The cross-primitive flow: pull a produced artifact out of the SANDBOX, persist it to the
+  // public FILESYSTEM (→ CDN url), advance the TODO to delivered, and notify by EMAIL.
+  async deliver(id: string, sandboxPath: string, filename: string, to: string): Promise<Todo> {
+    const bytes = await this.ports.sandbox.getFile(sandboxPath);
+    if (!bytes) throw new Error(`No artifact in sandbox at ${sandboxPath}`);
+
+    const { url } = await this.ports.filesystem.write(`delivered/${id}/${filename}`, bytes, {
+      public: true,
+    });
+
+    const delivered = await this.advance(id, "delivered", "provider"); // validates qa → delivered
+    const withArtifact: Todo = {
+      ...delivered,
+      artifacts: [...delivered.artifacts, url ?? `fs://delivered/${id}/${filename}`],
+      updatedAt: Date.now(),
+    };
+    await this.ports.todos.save(withArtifact);
+
+    await this.ports.email.send({
+      to,
+      subject: `Delivered: ${delivered.title}`,
+      body: "Your asset is ready — attached.",
+      attachments: url ? [{ filename, url }] : [],
+    });
+    return withArtifact;
   }
 
   private async requireTodo(id: string): Promise<Todo> {

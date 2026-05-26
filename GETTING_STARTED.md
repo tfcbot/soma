@@ -45,8 +45,8 @@ Omit any of these and that primitive runs on its mock. Set them on the deploymen
 | Phone | `AGENTPHONE_API_KEY` | AgentPhone | mock |
 | Email | `AGENTMAIL_API_KEY`, `AGENTMAIL_INBOX_ID` | AgentMail | mock |
 | Wallet | `AGENTCARD_API_KEY` | AgentCard | mock |
-| Computer | `FREESTYLE_API_KEY` | Freestyle VM | mock |
-| Storage | `ARCHIL_API_KEY`, `ARCHIL_DISK_ID` | Archil | mock |
+| Sandbox | `FREESTYLE_API_KEY` | Freestyle VM + git | mock |
+| FileSystem | `ARCHIL_DISK_ID`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_ACCESS_KEY_SECRET`, `R2_BUCKET_NAME`, `CDN_BASE_URL` | Archil disk + R2 (personal CDN) | mock |
 | Todo | _(none)_ | Convex DB | always real |
 
 ```bash

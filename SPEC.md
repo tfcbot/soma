@@ -53,6 +53,109 @@ We do not ask them to adopt ours or reconfigure theirs. We hand their agent an o
 API onto a body it can drive. Most products try to *be* the agent. This one refuses to. It is
 the body the agent borrows.
 
+### 2.1 None of this is new — and that's the point
+
+The body/brain split is not a novel idea; it is **separation of concerns**, **stable
+interfaces**, and **dependency inversion** — software-engineering principles that are decades
+old. We are applying them to a place that currently ignores them: the agent itself.
+
+The relevant principle is dependency inversion. High-level policy should not depend on
+low-level detail; both should depend on a **stable abstraction**:
+
+- The **agent (brain)** is high-churn and volatile. Models are replaced on a monthly cadence;
+  the agent you build on today is obsolete within a release or two.
+- The **operating layer (body)** is the stable abstraction. It changes additively and on its
+  own schedule (§12), not the model vendors'.
+
+So we invert the dependency: **the volatile agent depends on the durable contract, never the
+reverse.** That is the entire reason the split is worth drawing.
+
+### 2.2 Why "raw API + skills" rots, and a durable backend doesn't
+
+The prevailing pattern today — Claude Code, Codex, OpenClaw, et al. driving **raw vendor APIs
+plus skills/prompts** — produces *cheap, ephemeral software*. It is fast to stand up, and that
+is genuinely useful. But the capability lives **inside the agent layer**: in prompts, skills,
+and glue the agent re-derives at runtime. That has two compounding costs:
+
+1. **It's expensive to keep rewriting.** Logic encoded in prompts/skills gets re-implemented,
+   re-explained, and re-run constantly — you **blow tokens** re-establishing the same plumbing
+   every session instead of calling a stable endpoint once. Ephemeral software has to be
+   re-summoned; durable software is just *there*.
+2. **Migration is brutal when the agent goes out of date.** The instant a better agent ships —
+   and one always does — everything baked into the old agent layer (its skills, its prompt
+   scaffolding, its vendor glue) has to be ported. The investment was made in the **disposable**
+   layer, so it gets thrown away with it.
+
+A durable backend flips this. Capability lives in the **contract**, not in any one agent. When
+a new agent appears, you don't migrate — you **re-point**:
+
+```
+        ephemeral (raw API + skills)              durable (operating layer)
+        ────────────────────────────             ──────────────────────────
+  2025   Claude Code ─┐                           Claude Code ─┐
+                       ├─ glue lives IN the                     │
+  2026   Codex ───────┤   agent; replace the       Codex ──────┤
+                       │   agent → rewrite          OpenClaw ───┼──► Personal API
+  2027   OpenClaw ────┤   everything                            │    (stays put;
+                       │                            future ─────┘     glue lives HERE)
+  2028   new model ───┘                            model
+         each switch = re-implement + re-spend     each switch = change one endpoint URL
+```
+
+Point Claude at it today, Codex tomorrow, OpenClaw or some not-yet-shipped supercomputer-class
+agent the day after — **the backend doesn't move.** The contract, the wallet, the storage
+history, the `/todo` loop, the procurement glue all persist across agent generations. You stop
+re-buying the same capability every time the frontier moves, and agent obsolescence becomes a
+URL change instead of a rewrite.
+
+This is also the honest version of "no lock-in": because we operate no agents (§3) and expose
+only a contract, the principal is never married to a model vendor *or* to us — the same open
+interface runs on a self-hosted core (§14).
+
+### 2.3 The durable layer is two-faced — and deterministic in the middle
+
+So far the durable layer has been described from the **consumer side**: the client's agent
+points at it. But the contract has a second face. On the *other* side, an agent — supervised by
+a human operator — **builds and maintains the layer itself.** The full picture is symmetric,
+with the deterministic contract in the center:
+
+```
+   CONSUMER SIDE                  DURABLE LAYER                MAINTAINER SIDE
+   (the principal)                (deterministic)              (the provider)
+
+   customer  ⇄  agent  ──────►  [ serverless API ]  ◄──────  infra  ◄──  agent  ⇄  operator
+   (client²)   (brain)             the contract                          (brain)    (human)
+               consumes it      stable · deterministic ·               builds, maintains,
+                                    serverless                          and self-improves it
+```
+
+Two agents, one contract between them. The principal's agent **drives** the layer; the
+operator's agent **owns making the updates** to it — extending primitives (§12), hardening
+adapters, re-provisioning the VM — under a human operator's oversight. The maintenance that was
+a permanent tax in the VPS world (§5.2) is now *itself* done by an agent, with the human as
+supervisor rather than keyboard operator.
+
+> Note the double meaning of **client**. It is the *client* in the computer-science sense — the
+> calling software, the agent that consumes the API — **and** the *client* in the customer
+> sense — the human paying for the deliverable. The contract serves both at once, which is why
+> a clean one matters so much.
+
+**Why a deterministic, serverless middle solves a whole class of bugs.** LLM agents are
+**stochastic** — run the same prompt twice, get two behaviors. If business-critical logic
+(state transitions, budget ceilings, procurement gating, billing) lives *inside* an agent, the
+whole system inherits that non-determinism: it can't be reliably tested, reproduced, or
+trusted, and bugs hide in the variance. Moving that logic into a **deterministic serverless
+layer** — pure functions and an explicit state machine (the `/todo` lifecycle, §10) — makes it
+reproducible, testable, and reliable. The agents become *orchestrators of* a deterministic
+core, never the core itself. The deterministic middle is the **firebreak** that absorbs the
+non-determinism on both ends and hands the customer a smooth, predictable experience.
+
+This is the same hexagonal discipline as §5.4, read end to end: a **pure deterministic core**
+(§13 `core/`) with **stochastic agents at both edges** as driving adapters. The second-order
+move — a maintainer-side agent that *self-improves the durable layer* — is only safe *because*
+the core is deterministic and the human operator supervises: improvements are diffs against a
+testable contract, not unobservable mutations to a server that rots.
+
 ## 3. Who operates what (this matters — read it twice)
 
 Three distinct roles. Keeping them separate is what makes the model honest:
@@ -86,20 +189,126 @@ and wants to:
 They are fine with the agent having unrestricted compute *because it is sandboxed* — see §7.
 All they actually care about is the **deliverable**.
 
-## 5. The abstraction-layer argument (vs. the VPS)
+## 5. The abstraction-layer argument: from VPS to a personal API
 
-This is the clearest statement of why the thing exists.
+This is the clearest statement of why the thing exists. The level-up is precise: we move the
+client **up one rung on the abstraction ladder** — from owning a *server* to owning a
+*contract*.
 
 > **Old paradigm:** an agency helps the client "set up a VPS." This is the wrong abstraction
 > layer for the client. The client doesn't know what a VPS is and has no capacity to manage
 > one. *Nobody* can manage a VPS unless managing it is their full-time job — because it is one.
 
-> **This paradigm:** the client never touches a VPS. The client interfaces with a **headless
-> assistant** through their own agent and does not need to know anything about what's running.
-> The computer and storage still exist — but they are abstracted away from the client and made
-> **observable to the provider** for QA and troubleshooting.
+> **This paradigm:** the client never touches a VPS. The client owns a **personal API** — a
+> headless assistant their agent calls through their own agent. They do not need to know
+> anything about what's running underneath. The computer and storage still exist — but they
+> are abstracted behind the contract and made **observable to the provider** for QA.
 
 The plumbing didn't disappear; it moved to the layer that can actually operate it.
+
+### 5.1 The abstraction ladder
+
+```
+                        owns / manages         degrades over time?     who can run it
+  ┌────────────────────────────────────────────────────────────────────────────────────┐
+  │ Rung 0  Raw machine     the client runs a VPS        YES — entropy    only a full-time
+  │         (VPS)           (OS, deps, security,         is the default     ops person
+  │                          cron, disk, drift)
+  │
+  │ Rung 1  Managed box     someone else runs the VPS    YES — still a     a provider, but the
+  │         (managed VPS)   but it's still a *server*     server, just     client still owns a
+  │                          handed to the client          hidden            server-shaped thing
+  │
+  │ Rung 2  Personal API   the client owns a *contract*  NO — a contract   the client's AGENT,
+  │  ◄── WE ARE HERE         their agent calls;            is versioned,     with zero ops
+  │                          plumbing is the provider's     not maintained
+  │                          problem behind the contract
+  └────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+The whole product is the jump from Rung 1 to Rung 2. A managed VPS is still a server the
+client nominally owns; a personal API is a **stable surface** the client's agent talks to and
+nothing else.
+
+### 5.2 Why a contract beats a server: entropy
+
+A VPS is a **stateful, mutable system** — and every stateful mutable system degrades. Packages
+drift, certs expire, disks fill, security patches lag, someone SSHes in and changes something
+nobody documents. Maintenance isn't a one-time setup cost; it's a *permanent tax* that only
+goes up. That tax is exactly why "running it" has to be someone's full-time job.
+
+An API is a **contract**, not a running thing the client holds. Its properties are the opposite
+of a server's:
+
+| | VPS (a server) | Personal API (a contract) |
+|---|---|---|
+| Default trajectory | **degrades** — entropy, drift, rot | **stable** — the contract holds until versioned |
+| Maintenance | a permanent tax on the *owner* | the *provider's* problem, behind the interface |
+| Change management | mutate in place, hope nothing breaks | additive endpoints + explicit versioning (§12) |
+| What the client reasons about | OS, deps, disk, security, uptime | request → response, and a webhook |
+| Failure surface | the whole box | one endpoint, one schema |
+| Observability | "can you screen-share?" | the provider peers into the sandbox (§7) |
+
+The mutable, rotting part still exists — the VM, the disk, the installed toolchain — but it is
+now **behind** the contract, on the provider's side, where it can be re-provisioned from clean
+state at will (the VM is cattle, not a pet). The client never owns the part that degrades.
+
+### 5.3 The pattern we're adopting: BFF → Backend-for-Agent
+
+This is the **Backend-for-Frontend (BFF)** pattern from web development, reframed for agents.
+
+In web dev, a BFF sits between *one* frontend and *many* messy backend services. It exists so
+the frontend talks to a single surface shaped exactly to how *that* frontend consumes things —
+instead of the frontend orchestrating a dozen APIs with a dozen auth schemes itself.
+
+Swap "frontend" for "agent" and you have this product:
+
+```
+  WEB BFF                                  THIS (Backend-for-Agent)
+  ───────                                  ────────────────────────
+  Frontend                                 Agent  (the brain, BYO)
+     │  one tuned surface                     │  one opinionated API
+     ▼                                        ▼
+  ┌─────────┐                              ┌──────────────────────────┐
+  │  BFF    │  shapes & aggregates         │  Personal API (the body) │  shapes 6 vendors into
+  └─────────┘                              └──────────────────────────┘  one agent-shaped contract
+     │                                        │
+     ├─► auth service                         ├─► phone   (Twilio)
+     ├─► orders service                       ├─► email   (AgentMail)
+     ├─► catalog service                      ├─► wallet  (Stripe Issuing)
+     └─► payments service                     ├─► computer(Freestyle VM)
+                                              ├─► storage (Archil / S3)
+                                              └─► todo    (derived state)
+```
+
+The agent is the frontend. The personal API is its **Backend-for-Agent**: it absorbs six
+vendors — six auth schemes, six SDKs, six failure modes — and presents one contract tuned to
+how an agent actually drives work. The agent never orchestrates vendors directly, the same way
+a good web frontend never orchestrates microservices directly.
+
+### 5.4 Event-driven + hexagonal: how the contract holds
+
+Two architectural commitments keep the contract stable while the messy parts churn behind it.
+
+- **Hexagonal (ports & adapters).** The contract is the *port*; each vendor is a swappable
+  *adapter* (§13). Swapping Twilio for another phone vendor, or re-provisioning the VM, changes
+  an adapter — never the contract the agent depends on. The thing that degrades (the adapter)
+  is isolated from the thing the client owns (the port).
+- **Event-driven.** The agent doesn't poll-and-wait. Work is a small event loop over `/todo`
+  (§10): the agent **pushes** intent (`POST /todo`) and the system **emits events** as state
+  changes (`requested → … → delivered`), which fan out as webhooks to the principal's channels.
+  Pull (`GET /todo`) and push (state-change → webhook) are the *only* two interaction patterns.
+
+```
+  REQUEST / RESPONSE (pull)            EVENT-DRIVEN (push)
+  ────────────────────────            ───────────────────
+  agent ──► GET  /todo ──► state       state change ──► event ──► webhook ──► principal's
+  agent ──► POST /todo ──► ack           (delivered)                            phone / email
+```
+
+Together: the **hexagon** keeps the contract from breaking when vendors change; the
+**event loop** keeps the agent from babysitting the work. Both are in service of the one
+promise — the client owns a contract that doesn't degrade, not a server that does.
 
 ## 6. Computer + storage: two planes
 
@@ -283,14 +492,30 @@ How the protocol maps onto Convex:
   you protect it with a Bearer-key check that 401s anything without the key — the same pattern
   already running in VidJutsu (`convex/payments.ts` → `getBearerToken` / `checkAuth`),
   simplified here to a single `GATEWAY_API_KEY` compare.
-- **Storage = Archil** (no S3, no Vercel Blob). Caveat: Convex can't FUSE-mount Archil, so
-  file ops route either through the **Freestyle VM** (full Linux, mounts Archil) or Archil's
-  **TypeScript SDK** for small/metadata ops.
-- **Computer = Freestyle VM** — unrestricted Linux with ffmpeg, no 5-minute cap; Convex
-  orchestrates it over HTTP.
+**Compute and storage are split into two planes — different vendors, different jobs:**
+
+- **Sandbox = Freestyle** (control plane). A full-Linux VM with the repo mounted: install
+  ffmpeg, no 5-minute cap, real CPU. This is where work runs. Freestyle uniquely bundles
+  compute *and* a versioned workspace (git, branches), so versioning lives here: git runs
+  **in the sandbox** against the mounted workspace (`core/services/versioning.ts`), `wip` →
+  `delivered`. Archil's own serverless exec is deliberately **not** used for compute — its
+  5-min cap / missing ffmpeg / ephemeral container make it the wrong tool.
+- **FileSystem = Archil + R2** (data plane). The Archil disk is **backed by an R2 bucket**:
+  write an object to the bucket and it appears on the disk; a **public-prefixed** object is
+  served by a custom domain — the personal CDN, reusing VidJutsu's R2 pattern
+  (`convex/actions/storage.ts`). `publicUrl()` returns `CDN_BASE/key`. No S3, no Vercel Blob.
 - **Todo store = Convex DB** behind `TodoPort` (a `todos` table; VidJutsu schema conventions).
-- The **read-only / git boundary is optional** here — with no clients to wall off,
-  `VersionPort`/git becomes a convenience (history/undo), not a requirement.
+  Convex's other capabilities (scheduler, vector search, durable functions) are **not** exposed
+  as primitives — scheduling and memory are the client agent's job, not the body's (§2).
+- The **read-only / git boundary is optional** here — single-node has no clients to wall off,
+  so git-in-the-sandbox is enough; promote to a Freestyle-Git `VersionPort` only at multi-tenant.
+- **Provider portability is a deferred option, not a dependency.** The `SandboxPort` is the
+  seam: Freestyle is the default adapter; a ComputeSDK adapter (E2B / Modal / Vercel) can be
+  added later if portability is ever needed. We don't build that indirection now.
+
+The orchestration ties the planes (`core/services/assistant.ts → deliver`): run work in the
+**Sandbox** → pull the artifact out → persist to the public **FileSystem** (→ CDN url) →
+advance the **Todo** to `delivered` → notify by **Email**.
 
 Ops notes: Convex 1.31+ needs **Node 22**; run `npx convex dev --until-success` after any
 schema/action change to regenerate types.
