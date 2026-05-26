@@ -156,6 +156,47 @@ move — a maintainer-side agent that *self-improves the durable layer* — is o
 the core is deterministic and the human operator supervises: improvements are diffs against a
 testable contract, not unobservable mutations to a server that rots.
 
+### 2.4 Granular cost control: token spend and tooling spend
+
+The same split that buys determinism also buys **fine-grained cost control** — on both axes
+that actually cost money.
+
+**Token spend (the agent axis).** Tokens are the expensive, stochastic resource. When work
+lives inside the agent loop, *everything* is paid for in tokens — including the deterministic
+plumbing the agent re-derives every session (§2.2). Pushing that work behind the contract
+turns it into **cheap, fixed-cost API calls**, and reserves the model for what only a model can
+do — judgment and orchestration. Concretely, that unlocks:
+
+- **Right-sizing the brain.** Because the contract carries the complexity, a *cheaper* agent
+  can drive it. You don't need a frontier model to call `POST /todo` and read a webhook — match
+  the model tier to the task instead of paying top-of-stack for plumbing.
+- **No re-spend on repeat work.** Deterministic functions are cacheable and memoizable;
+  stochastic agent steps are not. Work done once behind the contract is *there*, not
+  re-summoned at token cost on the next run.
+- **Spend where the leverage is.** Token budget concentrates on the few genuinely hard
+  reasoning steps, not on re-establishing the same scaffolding turn after turn.
+
+**Tooling spend (the wallet axis).** Every external cost already routes through the wallet
+(§11). Because it routes through *the contract* rather than an opaque agent, each charge is a
+**metered event** attributable down to the individual `/todo` and primitive call — not a
+monthly lump. This yields per-todo, per-primitive, per-principal cost lines for free, and lets
+budget ceilings be enforced **deterministically in code** (a hard stop, §11) rather than by
+asking the agent to please stay under budget.
+
+```
+  WHERE THE COST LANDS            opaque agent loop          behind the contract
+  ────────────────────           ─────────────────          ───────────────────
+  deterministic plumbing         paid in tokens, re-run      fixed-cost API call, cacheable
+  model reasoning                paid in tokens              paid in tokens (unchanged — fine)
+  external tooling               opaque monthly invoice      metered per todo / primitive
+  budget ceiling                 "agent, stay under $X"      hard stop enforced in code
+  attribution granularity        one bill                    per-call line items
+```
+
+Net: the deterministic layer doesn't just remove a class of bugs (§2.3) — it makes both kinds
+of spend **observable and optimizable at the call level**, which is what keeps the unit
+economics (§11, §15) honest as volume grows.
+
 ## 3. Who operates what (this matters — read it twice)
 
 Three distinct roles. Keeping them separate is what makes the model honest:
