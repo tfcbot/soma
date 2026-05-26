@@ -1,11 +1,13 @@
 import type { Sandbox, ExecResult } from "../../core/ports/sandbox";
 
-// In-memory sandbox: logs commands, keeps a fake working tree. For local/mock mode + tests.
+// Mock + spy: records exec'd commands and keeps a fake working tree. For mock mode + tests.
 export class MockSandbox implements Sandbox {
+  readonly commands: string[] = [];
   private readonly files = new Map<string, Uint8Array>();
+  disposed = false;
 
   async exec(command: string): Promise<ExecResult> {
-    console.log(`[mock:sandbox] exec: ${command}`);
+    this.commands.push(command);
     return { stdout: `[mock] ran: ${command}`, stderr: "", exitCode: 0 };
   }
 
@@ -18,6 +20,7 @@ export class MockSandbox implements Sandbox {
   }
 
   async dispose(): Promise<void> {
+    this.disposed = true;
     this.files.clear();
   }
 }
