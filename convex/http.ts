@@ -1,13 +1,16 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { requireApiKey, json } from "./auth";
-import { buildPorts } from "./composition";
-import { Assistant } from "../core/services/assistant";
+import { convexTodoStore } from "./adapters/todoStore";
+import { TodoService } from "../core/services/todos";
 import type { TodoState } from "../core/domain/todo";
 
+// Todo endpoints run in the isolate runtime (no vendor SDKs). Vendor ops (deliver, fund)
+// delegate to the Node-runtime actions in node.ts via ctx.runAction.
 const router = httpRouter();
 
-// POST /v1/todo — the one client write: intake. Creates a todo in `requested`.
+// POST /v1/todo — intake (the one client write). Creates a todo in `requested`.
 const createTodo = httpAction(async (ctx, req) => {
   const denied = requireApiKey(req);
   if (denied) return denied;
@@ -20,8 +23,8 @@ const createTodo = httpAction(async (ctx, req) => {
   if (!body.title || !body.brief) {
     return json({ error: "bad_request", message: "title and brief are required" }, 400);
   }
-  const assistant = new Assistant(buildPorts(ctx));
-  const todo = await assistant.intake({
+  const svc = new TodoService(convexTodoStore(ctx));
+  const todo = await svc.intake({
     title: body.title,
     brief: body.brief,
     channelOrigin: body.channelOrigin,
@@ -34,8 +37,8 @@ const createTodo = httpAction(async (ctx, req) => {
 const listTodos = httpAction(async (ctx, req) => {
   const denied = requireApiKey(req);
   if (denied) return denied;
-  const assistant = new Assistant(buildPorts(ctx));
-  return json(await assistant.listTodos());
+  const svc = new TodoService(convexTodoStore(ctx));
+  return json(await svc.list());
 });
 
 // GET /v1/todo/{id}
@@ -43,32 +46,69 @@ const getTodo = httpAction(async (ctx, req) => {
   const denied = requireApiKey(req);
   if (denied) return denied;
   const id = new URL(req.url).pathname.split("/").pop() ?? "";
-  const assistant = new Assistant(buildPorts(ctx));
-  const todo = await assistant.getTodo(id);
+  const svc = new TodoService(convexTodoStore(ctx));
+  const todo = await svc.get(id);
   return todo ? json(todo) : json({ error: "not_found", id }, 404);
 });
 
-// POST /v1/todo/{id}/comment  (revise note)  and  POST /v1/todo/{id}/advance  (state change)
+// POST /v1/todo/{id}/{comment|advance|deliver|fund}
 const mutateTodo = httpAction(async (ctx, req) => {
   const denied = requireApiKey(req);
   if (denied) return denied;
   const parts = new URL(req.url).pathname.split("/").filter(Boolean); // [v1, todo, {id}, action]
   const id = parts[2] ?? "";
   const action = parts[3] ?? "";
-  const body = (await req.json().catch(() => ({}))) as { note?: string; to?: TodoState };
-  const assistant = new Assistant(buildPorts(ctx));
+  const body = (await req.json().catch(() => ({}))) as {
+    note?: string;
+    to?: TodoState;
+    sandboxPath?: string;
+    filename?: string;
+    recipient?: string;
+    amountCents?: number;
+    memo?: string;
+  };
   try {
     if (action === "comment") {
       if (!body.note) return json({ error: "bad_request", message: "note required" }, 400);
-      return json(await assistant.comment(id, body.note));
+      const svc = new TodoService(convexTodoStore(ctx));
+      return json(await svc.comment(id, body.note));
     }
     if (action === "advance") {
       if (!body.to) return json({ error: "bad_request", message: "to (state) required" }, 400);
-      return json(await assistant.advance(id, body.to, "provider"));
+      const svc = new TodoService(convexTodoStore(ctx));
+      return json(await svc.advance(id, body.to, "provider"));
+    }
+    if (action === "deliver") {
+      if (!body.sandboxPath || !body.filename || !body.recipient) {
+        return json(
+          { error: "bad_request", message: "sandboxPath, filename, recipient required" },
+          400,
+        );
+      }
+      // vendor-touching → Node runtime
+      const result = await ctx.runAction(internal.node.deliver, {
+        id,
+        sandboxPath: body.sandboxPath,
+        filename: body.filename,
+        to: body.recipient,
+      });
+      return json(result);
+    }
+    if (action === "fund") {
+      if (body.amountCents === undefined || !body.memo) {
+        return json({ error: "bad_request", message: "amountCents, memo required" }, 400);
+      }
+      const result = await ctx.runAction(internal.node.fundCard, {
+        id,
+        amountCents: body.amountCents,
+        memo: body.memo,
+        notify: body.recipient,
+      });
+      return json(result);
     }
     return json({ error: "not_found", message: `unknown action: ${action}` }, 404);
   } catch (err) {
-    return json({ error: "transition_error", message: (err as Error).message }, 409);
+    return json({ error: "operation_error", message: (err as Error).message }, 409);
   }
 });
 

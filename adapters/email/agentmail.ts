@@ -1,22 +1,31 @@
 import type { Email, EmailAttachment } from "../../core/ports/email";
+import { AgentMailClient } from "agentmail";
 
-// Real adapter — AgentMail. A working reference exists at
-// /Users/blurware/products/vidjutsu-space/vidjutsu/convex/actions/email.ts
-// (AgentMailClient + AGENTMAIL_API_KEY / AGENTMAIL_INBOX_ID). Port that here when wiring real.
+// Real adapter — AgentMail (SDK `agentmail`). Mirrors the proven VidJutsu usage
+// (convex/actions/email.ts). Attachments accept a `url` directly, so a CDN link from the
+// FileSystem primitive attaches without re-encoding.
 export class AgentMail implements Email {
-  constructor(
-    private readonly apiKey: string,
-    private readonly inboxId: string,
-  ) {}
+  private readonly client: AgentMailClient;
 
-  async send(_input: {
+  constructor(
+    apiKey: string,
+    private readonly inboxId: string,
+  ) {
+    this.client = new AgentMailClient({ apiKey });
+  }
+
+  async send(input: {
     to: string;
     subject: string;
     body: string;
     attachments?: EmailAttachment[];
   }): Promise<{ id: string }> {
-    void this.apiKey;
-    void this.inboxId;
-    throw new Error("AgentMail adapter not implemented yet — see SPEC.md §15. Use the mock.");
+    const res = await this.client.inboxes.messages.send(this.inboxId, {
+      to: [input.to],
+      subject: input.subject,
+      text: input.body,
+      attachments: input.attachments?.map((a) => ({ filename: a.filename, url: a.url })),
+    });
+    return { id: res.messageId };
   }
 }

@@ -29,12 +29,18 @@ export function buildPorts(ctx: ActionCtx): Ports {
 
   return {
     todos: convexTodoStore(ctx),
-    phone: env.AGENTPHONE_API_KEY ? new AgentPhone(env.AGENTPHONE_API_KEY) : new MockPhone(),
+    phone:
+      env.AGENTPHONE_API_KEY && env.AGENTPHONE_AGENT_ID
+        ? new AgentPhone(env.AGENTPHONE_API_KEY, env.AGENTPHONE_AGENT_ID)
+        : new MockPhone(),
     email:
       env.AGENTMAIL_API_KEY && env.AGENTMAIL_INBOX_ID
         ? new AgentMail(env.AGENTMAIL_API_KEY, env.AGENTMAIL_INBOX_ID)
         : new MockEmail(),
-    wallet: env.AGENTCARD_API_KEY ? new AgentCard(env.AGENTCARD_API_KEY) : new MockWallet(),
+    wallet:
+      env.AGENTCARD_API_KEY && env.AGENTCARD_CARDHOLDER_ID
+        ? new AgentCard(env.AGENTCARD_API_KEY, env.AGENTCARD_CARDHOLDER_ID)
+        : new MockWallet(),
     sandbox: env.FREESTYLE_API_KEY
       ? new FreestyleSandbox(env.FREESTYLE_API_KEY)
       : new MockSandbox(),

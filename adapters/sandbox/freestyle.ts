@@ -1,28 +1,50 @@
 import type { Sandbox, ExecResult } from "../../core/ports/sandbox";
+import { Freestyle, type Vm } from "freestyle";
 
-// Real adapter — Freestyle (npm: `freestyle`). VM + git in one vendor: full Linux (install
-// ffmpeg), no 5-min cap, repo mounted at the workdir, server-side git with branches.
-// Shape: `const { vm } = await freestyle.vms.create({ gitRepos: [{ repo, path: "/workspace" }] })`
-//        then `await vm.exec(cmd)`; stage via the VM filesystem API.
-// TODO(SPEC §15): confirm VM CPU/mem/disk limits + pricing (the one doc gap; drives unit econ).
-// Alt adapter (deferred): ComputeSDK over E2B/Modal/Vercel for provider portability (SPEC §16).
+// Real adapter — Freestyle (SDK `freestyle`). A full-Linux VM (install ffmpeg, no 5-min cap).
+// One VM is created lazily and reused; dispose() suspends it. Binary IO via vm.fs.read/writeFile.
+// TODO(SPEC §15): confirm VM CPU/mem/disk limits + pricing (drives unit economics). For git
+// versioning, run git via exec against the mounted workspace (core/services/versioning.ts).
 export class FreestyleSandbox implements Sandbox {
-  constructor(private readonly apiKey: string) {}
+  private readonly client: Freestyle;
+  private vm: Vm | null = null;
 
-  async exec(_command: string): Promise<ExecResult> {
-    void this.apiKey;
-    throw new Error("Freestyle sandbox not implemented yet — see SPEC.md §15. Use the mock.");
+  constructor(apiKey: string) {
+    this.client = new Freestyle({ apiKey });
   }
 
-  async putFile(_path: string, _data: Uint8Array | string): Promise<void> {
-    throw new Error("Freestyle sandbox not implemented yet — see SPEC.md §15. Use the mock.");
+  private async ensureVm(): Promise<Vm> {
+    if (this.vm) return this.vm;
+    const { vm } = await this.client.vms.create();
+    this.vm = vm;
+    return vm;
   }
 
-  async getFile(_path: string): Promise<Uint8Array | null> {
-    throw new Error("Freestyle sandbox not implemented yet — see SPEC.md §15. Use the mock.");
+  async exec(command: string): Promise<ExecResult> {
+    const vm = await this.ensureVm();
+    const r = await vm.exec(command);
+    return { stdout: r.stdout ?? "", stderr: r.stderr ?? "", exitCode: r.statusCode ?? 0 };
+  }
+
+  async putFile(path: string, data: Uint8Array | string): Promise<void> {
+    const vm = await this.ensureVm();
+    await vm.fs.writeFile(path, Buffer.from(data as Uint8Array | string));
+  }
+
+  async getFile(path: string): Promise<Uint8Array | null> {
+    const vm = await this.ensureVm();
+    try {
+      const buf = await vm.fs.readFile(path);
+      return new Uint8Array(buf);
+    } catch {
+      return null;
+    }
   }
 
   async dispose(): Promise<void> {
-    // no-op until wired
+    if (this.vm) {
+      await this.vm.suspend();
+      this.vm = null;
+    }
   }
 }

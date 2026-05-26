@@ -1,12 +1,15 @@
-import type { Wallet } from "../../core/ports/wallet";
+import type { Wallet, IssuedCard } from "../../core/ports/wallet";
 
 export class MockWallet implements Wallet {
-  async charge(input: {
-    amount: number;
-    currency: string;
-    memo: string;
-  }): Promise<{ id: string; ok: boolean }> {
-    console.log(`[mock:wallet] charge ${input.amount} ${input.currency} — ${input.memo}`);
-    return { id: `ch_mock_${Date.now()}`, ok: true };
+  async issueCard(input: { amountCents: number; memo: string }): Promise<IssuedCard> {
+    console.log(`[mock:wallet] issue card limit $${(input.amountCents / 100).toFixed(2)} — ${input.memo}`);
+    return {
+      id: `card_mock_${Date.now()}`,
+      pan: "4242424242424242",
+      cvv: "123",
+      expiry: "12/30",
+      spendLimitCents: input.amountCents,
+      last4: "4242",
+    };
   }
 }
