@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.convex/
+convex/_generated/
+bun.lockb
+*.log
+.DS_Store
