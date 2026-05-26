@@ -1,3 +1,4 @@
+"use node";
 import type { ActionCtx } from "./_generated/server";
 import type { Ports } from "../core/services/assistant";
 
