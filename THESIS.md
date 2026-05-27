@@ -27,7 +27,8 @@ We open-source **the workstation**. You bring **the brain**. The principal alrea
 Claude Code, Claude for cowork, whatever they live in. We don't ask them to adopt ours or
 reconfigure theirs; we hand their agent one opinionated API: a workstation it can sit down at.
 Most products try to *be* the agent. This one refuses to — it's the workstation the agent works
-from.
+from. You can run one for your own agent, or operate Workstations that other people's agents work
+at; the metered gateway is built for both.
 
 ## 2. None of this is new — and that's the point
 
@@ -114,7 +115,7 @@ Agents become *callers of* a deterministic core, never the core itself. That gat
 **firebreak** that absorbs non-determinism on both ends — and, deliberately, it holds no workflow
 or task state: sequencing the work is the brain's job, not the workstation's.
 
-## 5. Granular cost control: token spend and tooling spend
+## 5. Metering: cost control — and a billable service
 
 The same split that buys determinism buys **fine-grained cost control** on both axes that cost
 money.
@@ -130,6 +131,11 @@ routes through *the contract*, each charge is a **metered event** attributable t
 not a monthly lump. Two ceilings hold spend deterministically in code, never by asking the agent
 to behave: the per-call **credit** debit (the caller pays per use) and the wallet's **prepaid card
 limit** (the agent's hard cap on vendor spend).
+
+The same mechanism is why a Workstation can be **operated as a service, not just used personally**:
+because every call is a per-key, attributable, metered event, the operator can bill others' usage
+through the exact gateway that meters their own — or turn metering off per endpoint and run it free.
+Controlling your costs and charging for access are the same primitive, pointed two directions.
 
 ```
 WHERE THE COST LANDS            opaque agent loop          at the workstation
@@ -237,12 +243,15 @@ The front-of-house reframe:
 Production, QA, and procurement happen behind it. The principal's only obligations are **fund the
 workstation** (credits) and **load the wallet**.
 
-## 11. The target user
+## 11. Who runs a Workstation
 
-Not a technical buyer. A high-level executive who lives in Claude and wants to interface by phone
-or email, have their agent do the low-level computer/storage work, and own none of the plumbing —
-no VPS, no API keys, no vendor accounts, not even their own card/phone/email plugged in. They're
-fine with unrestricted compute *because it's sandboxed*. All they care about is the deliverable.
+Two roles — often the same person at first. The **operator** stands up and runs a Workstation:
+for their own agent, or as a metered service whose per-key accounts, credits, and event ledger let
+them meter (and bill) others' usage. The **principal** is whoever's agent works at it — they own
+their data and connections and need no plumbing (no VPS, no API keys, no vendor accounts, not even
+their own card/phone/email plugged in), and they're fine with unrestricted compute *because it's
+sandboxed*. Self-hosting, operator and principal are one. Run as a service, they're distinct — but
+either way what's exposed is one opinionated, metered API, never a configuration burden.
 
 ## 12. Open vs. hosted
 
