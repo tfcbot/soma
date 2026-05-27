@@ -12,6 +12,7 @@ export interface OpDef<I extends z.ZodTypeAny, O extends z.ZodTypeAny, S extends
   costCents: number; // 0 = free; metered keys debited this before the work runs
   summary: string;
   auth?: "key" | "public"; // default "key" — "public" skips auth + metering
+  metered?: boolean; // default true; false (or costCents 0) skips the credit gate
   serve: S;
 }
 
