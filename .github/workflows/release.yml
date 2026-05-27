@@ -1,0 +1,43 @@
+name: Release CLI binaries
+
+# Cut a release by pushing a tag like v0.1.0. Builds the four bun-compiled
+# `soma` CLI binaries and attaches them (plus install.sh) to the GitHub Release,
+# which is what packages/cli/install.sh downloads via `curl | sh`.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install deps
+        run: bun install --frozen-lockfile
+
+      - name: Regenerate SDK from spec (deterministic)
+        run: bun run generate
+
+      - name: Build CLI binaries
+        working-directory: packages/cli
+        run: bun run build:binary
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            packages/cli/dist/soma-darwin-arm64
+            packages/cli/dist/soma-darwin-x64
+            packages/cli/dist/soma-linux-x64
+            packages/cli/dist/soma-linux-arm64
+            packages/cli/install.sh
+          generate_release_notes: true

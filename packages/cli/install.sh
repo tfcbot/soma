@@ -4,7 +4,7 @@ set -e
 # Soma CLI installer
 # Usage: curl -fsSL https://soma.example/install.sh | sh
 
-REPO="REPLACE_ME/soma"   # GitHub repo hosting the release binaries
+REPO="tfcbot/programmable-assistant"   # monorepo hosting the release binaries
 BINARY_NAME="soma"
 INSTALL_DIR="$HOME/.local/bin"
 
