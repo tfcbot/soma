@@ -35,3 +35,27 @@ export interface Ports {
   filesystem: FileSystemPort;
 }
 export type PortName = keyof Ports;
+
+// ── Compile-time guard ────────────────────────────────────────────────────────
+// Every port op's `serve: { port, method }` MUST name a real Ports method, and every gateway op
+// must say `{ gateway: true }`. A typo here is a `tsc` error, not a runtime "unknown port op".
+import type { Operations, OperationId } from "./operations";
+
+type ServeOk<K extends OperationId> = Operations[K]["serve"] extends { gateway: true }
+  ? true
+  : Operations[K]["serve"] extends { port: infer P; method: infer M }
+    ? P extends keyof Ports
+      ? M extends keyof Ports[P]
+        ? true
+        : false
+      : false
+    : false;
+
+// Collects the ids of any op whose `serve` doesn't line up (else `never`).
+type BadServe = { [K in OperationId]: ServeOk<K> extends true ? never : K }[OperationId];
+
+// If BadServe isn't `never`, this assignment fails to compile and names the offending op(s).
+const _assertServeMatchesPorts: [BadServe] extends [never]
+  ? true
+  : { ERROR: "serve does not match a Ports method"; offendingOps: BadServe } = true;
+void _assertServeMatchesPorts;
