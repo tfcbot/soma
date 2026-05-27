@@ -1,6 +1,5 @@
 // The credit balance (the caller-pays-the-provider axis). Pure domain — no persistence.
-// Distinct from the budget envelope (core/domain/budget.ts), which caps the AGENT's vendor
-// spend per todo. Credits are what the CALLER spends with the provider to use the contract.
+// Credits are what the CALLER spends with the provider to use the contract.
 
 export interface CreditBalance {
   creditsCents: number; // remaining prepaid balance

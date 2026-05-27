@@ -10,9 +10,10 @@ implement-anywhere contract lives in [SPEC.md](./SPEC.md), and a concrete walkth
 
 There is a small, fixed set of faculties that turn a language model into something that can
 operate in the world on someone's behalf: a **phone**, an **email**, a **wallet**, a
-**computer**, **storage**, and a way to **track the work**. Bundle those and an agent has a
+**computer**, and **storage**. Bundle those behind a metered gateway and an agent has a
 *complete loop* — it can be briefed, do the work, pay for tools, keep its outputs, and report
-back — without ever borrowing the principal's own card, phone, email, or machine.
+back — without ever borrowing the principal's own card, phone, email, or machine. Tracking and
+coordinating the work is the agent brain's job, not the body's.
 
 | | What it is | Who owns it |
 |---|---|---|

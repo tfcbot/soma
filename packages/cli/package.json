@@ -20,7 +20,9 @@
     "dev": "bun run src/index.ts"
   },
   "dependencies": {
-    "citty": "^0.1.6"
+    "citty": "^0.1.6",
+    "@soma/contract": "workspace:*",
+    "soma": "workspace:*"
   },
   "license": "MIT",
   "repository": {
