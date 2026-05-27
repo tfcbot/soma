@@ -13,13 +13,18 @@ RFC 2119.
 
 ## 1. Abstract
 
-The Programmable Assistant ("the Assistant", or "the body") is a headless backend that exposes
-a fixed set of **primitives** — phone, email, wallet, sandbox, filesystem, and todo — through
-one opinionated, API-key-gated HTTP contract. An external **Agent** (the brain, brought by the
-caller) drives the primitives to accomplish work. The platform operates no agents; it serves the
-contract. A conforming implementation lets any agent be briefed, do work in a sandbox, pay for
-tooling, persist deliverables, and report status — a complete loop — without the caller's own
-credentials.
+The Programmable Assistant ("the Assistant", or "the body") is a headless backend that exposes a
+fixed set of **faculties** — phone, email, wallet, sandbox (compute), and filesystem (storage) —
+**directly** through one **gateway**: an API-key-gated, metered, observable HTTP contract. An
+external **Agent** (the brain, brought by the caller) calls the faculties to accomplish work and
+**coordinates that work itself**. The platform operates no agents; it serves the contract. A
+conforming implementation lets any agent reach people, pay for tooling, run code, and persist
+deliverables — a complete loop — without the caller's own credentials, and meters each call.
+
+The Assistant is **not** a task manager: tracking and sequencing work is the Agent's job, not the
+body's. The body's durable contribution is the **gateway** — identity (per-key accounts), metering
+(credits), abuse protection (rate limits), and observability (an event ledger) — over swappable
+faculty adapters.
 
 ## 2. Roles
 
@@ -27,47 +32,49 @@ credentials.
 - **Agent** — the LLM/automation that calls the contract (the "client" in the protocol sense).
   Out of scope to specify; brought by the Principal or Provider.
 - **Provider** — operates a deployment of the Assistant. In self-host mode the Principal is the
-  Provider.
+  Provider; the Provider mints and owns API keys.
 - **Assistant / Platform** — the conforming backend specified here. It MUST operate no agents.
 
 ## 3. Conformance
 
 An implementation conforms to this protocol if and only if it:
 
-1. implements the six primitive interfaces in §5 (an implementation MAY add more, §10);
-2. enforces the Todo resource model and lifecycle state machine in §6, rejecting illegal
-   transitions;
-3. exposes the Gateway HTTP API in §7 with the authentication in §7.1;
-4. enforces budget ceilings deterministically as in §8;
-5. honors the security requirements in §9 — in particular, it MUST NOT expose secrets as a
-   primitive.
+1. implements the five faculty interfaces in §5 (an implementation MAY add more, §10);
+2. exposes each faculty operation over the Gateway HTTP API (§7) with the authentication in §7.1;
+3. meters billable operations deterministically and returns `402` on an empty balance (§7.4);
+4. honors the security requirements in §9 — in particular, it MUST NOT expose secrets as a
+   faculty or endpoint.
 
-Vendor choices (§11) are **informative**: any adapter satisfying a primitive's interface
-conforms.
+Vendor choices (§11) are **informative**: any adapter satisfying a faculty's interface conforms.
 
 ## 4. Architecture
 
-The Agent calls **one** HTTP contract. Behind it, each primitive is a **port** with a swappable
-**adapter**. Business-critical logic (the Todo state machine, budget ceilings) MUST live in a
-**deterministic** layer, not inside any agent.
+The Agent calls **one** HTTP contract. The **gateway** is the deterministic spine: it
+authenticates the key to an account, meters/limits the call, routes it to a faculty, and records
+an event. Each faculty is a **port** with a swappable **adapter**. Business-critical logic
+(identity, credit accounting, rate limits) MUST live in this deterministic layer, never inside an
+agent.
 
 ```
-   Agent (brain, external) ──HTTP──► Gateway (auth + routing)
-                                        │
-            ┌───────────┬───────────┬───┴────┬────────────┬──────────┐
-          Phone       Email       Wallet   Sandbox     FileSystem    Todo
-          (port)      (port)      (port)   (port)      (port)        (state)
-            │           │           │        │            │
-         adapter     adapter     adapter  adapter      adapter   (deterministic core)
+   Agent (brain, external) ──HTTP──► Gateway
+                                       │  auth → rate limit (429) → meter (402)
+                                       │  → validate → route → event log
+            ┌───────────┬──────────────┼────────────┬──────────────┐
+          Phone       Email          Wallet       Sandbox       FileSystem
+          (port)      (port)         (port)       (port)        (port)
+            │           │              │            │             │
+         adapter     adapter        adapter      adapter       adapter
 ```
 
-The Agent MUST NOT be required to address adapters directly; it interacts only with the
-Gateway contract.
+The Agent MUST NOT be required to address adapters directly; it interacts only with the gateway
+contract. The contract is defined as a typed **operation registry** (§6); the gateway exposes
+every registry entry uniformly.
 
-## 5. Primitives
+## 5. Faculties
 
-Each primitive is defined by an interface (shown in language-neutral form; `bytes` = binary
-blob, `?` = optional/nullable). A conforming implementation MUST provide an adapter for each.
+Each faculty is defined by an interface (language-neutral; `bytes` = binary blob, `?` =
+optional/nullable). A conforming implementation MUST provide an adapter for each. Binary payloads
+cross the HTTP contract as base64.
 
 ### 5.1 Phone
 ```
@@ -87,7 +94,7 @@ issueCard({ amountCents: int, memo: string })
   -> { id, pan, cvv, expiry, spendLimitCents, last4? }
 ```
 The wallet **issues a prepaid card**; it does not "charge". `spendLimitCents` is the prepaid
-ceiling. `pan`/`cvv` are sensitive (§9).
+ceiling and is itself the hard per-transaction spend limit. `pan`/`cvv` are sensitive (§9).
 
 ### 5.4 Sandbox (compute)
 ```
@@ -96,9 +103,11 @@ putFile(path: string, data: bytes|string) -> void
 getFile(path: string) -> bytes?
 dispose() -> void
 ```
-A conforming Sandbox MUST run unrestricted code in isolation from the Principal's accounts
-(§9). It SHOULD provide a full POSIX environment (so tools like ffmpeg and git run). Versioning
-is a convention over `exec` (git in the sandbox); it is not a separate primitive.
+A conforming Sandbox MUST run unrestricted code in isolation from the Principal's accounts (§9)
+and SHOULD provide a full POSIX environment (so tools like ffmpeg and git run). Because faculty
+calls are independent HTTP requests, a conforming Sandbox SHOULD provide a **session that persists
+across calls** for a given account (a `putFile` then a later `exec`/`getFile` MUST address the
+same working tree).
 
 ### 5.5 FileSystem (storage)
 ```
@@ -107,68 +116,44 @@ write(path: string, data: bytes|string, opts?: { public?: bool }) -> { path, url
 list(prefix?: string) -> string[]
 publicUrl(path: string) -> string
 ```
-When `opts.public` is set, `write` MUST return a `url` that resolves the object publicly (the
-CDN URL). `publicUrl` MUST be deterministic for a given path.
+When `opts.public` is set, `write` MUST return a `url` that resolves the object publicly (the CDN
+URL). `publicUrl` MUST be deterministic for a given path.
 
-### 5.6 Todo (work state)
-Not an external vendor — the deterministic coordination primitive. Defined by the resource and
-lifecycle in §6, exposed via the API in §7.
+## 6. Operations and the typed contract
 
-## 6. The Todo resource and lifecycle
+The contract is a set of named **operations**. Each operation declares a method, a path, an input
+schema, an output schema, and a **credit cost** (0 = free). The gateway exposes each operation as
+an HTTP endpoint (§7) and applies the same pipeline to all of them (§4). A conforming
+implementation MUST expose, at minimum, one operation per faculty interface method in §5, plus the
+account-facing `balance` and `events` operations (§7).
 
-### 6.1 Resource
-```
-Todo {
-  id: string                 // server-assigned, e.g. "td_<hex>"
-  title: string
-  brief: string
-  state: TodoState           // see §6.2
-  channelOrigin?: string     // "sms" | "email" | "api" | ...
-  budget?: { authorized: number, spent: number, currency: string }
-  artifacts: string[]        // pointers/URLs; populated at `delivered`
-  ref?: { branch: string, commit: string }
-  history: [{ state: TodoState, ts: number, actor: string }]
-  createdAt: number
-  updatedAt: number
-}
-```
+This registry is the **single source of truth**: server routing, client SDKs, and any published
+OpenAPI description derive from it. Adding or changing operations is §10.
 
-### 6.2 Lifecycle (normative state machine)
-```
-requested ─► accepted ─► in_production ─► qa ─► delivered ─► approved
-                              ▲            │         │
-                              └────────────┘         └─► revise ─► in_production
-```
-Legal transitions:
-```
-requested      → accepted
-accepted       → in_production
-in_production  → qa
-qa             → delivered | in_production
-delivered      → approved | revise
-revise         → in_production
-approved       → (terminal)
-```
-An implementation **MUST** reject any transition not listed (respond `409`, §7) and **MUST**
-append every accepted transition to `history` with a timestamp and actor.
+There is **no work-state resource and no lifecycle state machine** in the body. Sequencing,
+retries, approval, and "done"-ness are the Agent's concern.
 
 ## 7. Gateway HTTP API
 
-All paths are relative to the deployment base URL. Bodies are JSON.
+All paths are relative to the deployment base URL. Bodies are JSON; binary fields are base64.
+Every operation is gated identically: authenticate (§7.1) → rate limit (§7.5) → meter (§7.4) →
+validate input → run → record an event (§7.3).
 
-| Method & path | Purpose | Success | Errors |
+| Method & path | Faculty / purpose | Success | Errors |
 |---|---|---|---|
-| `POST /v1/todo` | Intake — create a Todo in `requested` | `201` Todo | `400`, `401` |
-| `GET /v1/todo` | List all Todos | `200` Todo[] | `401` |
-| `GET /v1/todo/{id}` | Fetch one | `200` Todo | `401`, `404` |
-| `POST /v1/todo/{id}/comment` | Append a revise note (bounces `delivered`→`revise`) | `200` Todo | `400`, `401` |
-| `POST /v1/todo/{id}/advance` | Drive a state transition `{ to }` | `200` Todo | `400`, `401`, `409` |
-| `POST /v1/todo/{id}/deliver` | Persist a sandbox artifact + deliver `{ sandboxPath, filename, recipient }` | `200` Todo | `400`, `401`, `409` |
-| `POST /v1/todo/{id}/fund` | Issue a card within budget `{ amountCents, memo, recipient? }` | `200` `{ todo, card }` | `400`, `401`, `409` |
-
-`POST /v1/todo` accepts `{ title, brief, channelOrigin?, budget? }`. Illegal state transitions
-(including via `deliver`) MUST return `409`; budget overruns (via `fund`) MUST return `409`
-(§8).
+| `POST /v1/phone/messages` | Phone: send SMS | `200` `{ id }` | `400`,`401`,`402`,`429` |
+| `POST /v1/email/messages` | Email: send | `200` `{ id }` | `400`,`401`,`402`,`429` |
+| `POST /v1/wallet/cards` | Wallet: issue prepaid card | `200` Card | `400`,`401`,`402`,`429` |
+| `POST /v1/sandbox/exec` | Sandbox: run a command | `200` ExecResult | `400`,`401`,`402`,`429` |
+| `PUT /v1/sandbox/files` | Sandbox: write a file (base64) | `200` `{ path }` | `400`,`401`,`402`,`429` |
+| `GET /v1/sandbox/files?path=` | Sandbox: read a file (base64) | `200` `{ data? }` | `401`,`402`,`429` |
+| `POST /v1/sandbox/dispose` | Sandbox: suspend/destroy the VM | `200` `{ ok }` | `401`,`429` |
+| `PUT /v1/fs/objects` | FileSystem: write object (base64) | `200` `{ path, url? }` | `400`,`401`,`402`,`429` |
+| `GET /v1/fs/objects?path=` | FileSystem: read object (base64) | `200` `{ data? }` | `401`,`402`,`429` |
+| `GET /v1/fs/list?prefix=` | FileSystem: list paths | `200` `{ paths }` | `401`,`429` |
+| `GET /v1/fs/public-url?path=` | FileSystem: public CDN url | `200` `{ url }` | `401`,`429` |
+| `GET /v1/balance` | Account: credit balance | `200` Balance | `401` |
+| `GET /v1/events` | Account: recent usage events | `200` `{ events }` | `401` |
 
 ### 7.1 Authentication
 Every request MUST carry `Authorization: Bearer <key>`. Each key resolves to an **account**;
@@ -180,101 +165,85 @@ operator who wants free or privileged access does so by their own means (e.g. ze
 large balance, or logic layered on the reserved per-account `scopes` field); that is out of scope
 for the protocol.
 
-### 7.2 Access boundary
-Principal-facing access is limited to reads (`GET`) plus the two writes `POST /v1/todo`
-(intake) and `POST /v1/todo/{id}/comment`. State transitions, delivery, and funding are
-Provider-side operations. Implementations SHOULD enforce this boundary (in single-node it is by
-convention; multi-tenant deployments MUST enforce it per-identity).
-
-### 7.3 Events
-Implementations SHOULD emit an event on each state change and MAY fan it out to the Principal's
-channels (e.g. webhook → email/SMS on `delivered`). Pull (`GET`) and push (event) are the only
+### 7.2 Observability and events
+The gateway MUST record an event for every gated call — at least `{ accountId, op, costCents,
+status, ts }` — and expose an account's own events via `GET /v1/events`. This event ledger is the
+body's unit of observability (it replaces any work-state resource). Implementations MAY fan events
+out to a Provider-configured webhook. Pull (`GET`) and push (event/webhook) are the only
 interaction patterns.
 
-### 7.4 Payment (metering)
-Each operation has a credit cost (0 = free; costs live in one table, `core/domain/pricing.ts`).
-The gateway MUST debit the cost atomically before performing the work and MUST refund it if a
-vendor-touching step fails. When the balance cannot cover the cost the gateway MUST return
-`402 Payment Required` with an RFC 7807 `application/problem+json` body carrying `required`,
-`balance`, and a `topupUrl`, and SHOULD include a `WWW-Authenticate: Payment` header so a
-payment-capable agent (e.g. MPP / x402) can settle inline. Metering applies to every account
-uniformly (no bypass tier). This is distinct from the budget envelope (§8), which caps the
-*agent's* vendor spend, not the *caller's* spend with the Provider.
+### 7.3 Payment (metering)
+Each operation has a credit cost (0 = free; costs live in the operation registry, §6). The gateway
+MUST debit the cost atomically before performing the work and MUST refund it if a vendor-touching
+step fails. When the balance cannot cover the cost the gateway MUST return `402 Payment Required`
+with an RFC 7807 `application/problem+json` body carrying `required`, `balance`, and a `topupUrl`,
+and SHOULD include a `WWW-Authenticate: Payment` header so a payment-capable agent (e.g. MPP /
+x402) can settle inline. Metering applies to every account uniformly (no bypass tier).
 
-Credits are *added* to a balance through one server-side seam (`accounts:grantCredits`); the
+Credits are *added* to a balance through one server-side seam (e.g. `accounts:grantCredits`); the
 protocol defines the seam, **not** the purchase rail. How credits are bought — Stripe checkout,
-agent-native x402 / MPP settlement, a subscription-style monthly grant, or a manual top-up — is
-the Provider's choice and out of scope here. A conforming implementation MUST expose a way to
-add credits to an account and MUST NOT make that path reachable by the spending caller itself.
+agent-native x402 / MPP settlement, a subscription-style monthly grant, or a manual top-up — is the
+Provider's choice and out of scope here. A conforming implementation MUST expose a way to add
+credits to an account and MUST NOT make that path reachable by the spending caller itself.
 
-### 7.5 Rate limiting (abuse protection)
-Independently of credits, a Provider MAY rate-limit calls to protect against abuse. The
-reference implementation ships a fixed-window framework (per `(account, operation)` per
-minute) that is **off by default** and enabled by the operator (`SOMA_RATE_LIMIT_PER_MIN`).
-When a caller exceeds the limit the gateway MUST return `429 Too Many Requests` with a
-`Retry-After` header. Rate limiting is checked **before** metering, so a throttled call does
-not consume credits. Limits and policy are the operator's to define; the protocol mandates
-only the `429 + Retry-After` shape when limiting is in effect.
+### 7.4 Rate limiting (abuse protection)
+Independently of credits, a Provider MAY rate-limit calls to protect against abuse. The reference
+implementation ships a fixed-window framework (per `(account, operation)` per minute) that is
+**off by default** and enabled by the operator. When a caller exceeds the limit the gateway MUST
+return `429 Too Many Requests` with a `Retry-After` header. Rate limiting is checked **before**
+metering, so a throttled call does not consume credits.
 
-## 8. Budget envelope
+## 8. Security considerations
 
-If a Todo has a `budget`, funding operations MUST be bounded by it:
-
-- The remaining budget is `authorized - spent`.
-- A `fund`/charge whose amount exceeds the remaining budget **MUST be refused before any card is
-  issued** (no side effect), surfaced as `409`.
-- An accepted charge MUST increase `spent` atomically with issuing the card.
-- The wallet is prepaid: the issued card's `spendLimitCents` is itself a hard ceiling.
-
-Budgets and currency units are implementation-defined but MUST be enforced deterministically in
-code, never delegated to the Agent.
-
-## 9. Security considerations
-
-- **Secrets are never a primitive.** Vendor credentials MUST be held server-side and MUST NOT
-  be exposed through any primitive or endpoint. The Agent borrows capabilities (send, pay,
-  compute, store), never the underlying keys.
+- **Secrets are never a faculty.** Vendor credentials MUST be held server-side and MUST NOT be
+  exposed through any faculty or endpoint. The Agent borrows capabilities (send, pay, compute,
+  store), never the underlying keys.
 - **Sandbox isolation.** Unrestricted execution MUST be isolated from the Principal's real
-  accounts; the only spending channel is the prepaid wallet (§8).
-- **Prepaid ceiling.** Autonomous spend MUST be bounded by a prepaid limit; implementations
+  accounts; the only spending channel is the prepaid wallet.
+- **Prepaid ceiling.** Autonomous spend is bounded by the issued card's prepaid `spendLimitCents`;
+  aggregate spend caps, if wanted, are Provider policy (not part of the protocol). Implementations
   SHOULD additionally gate charges behind explicit Principal authorization until trusted.
 - **Sensitive fields.** `pan`/`cvv` (§5.3) MUST NOT be logged.
-- **Scheduling and memory are out of scope.** They belong to the Agent (the brain), not the
-  body; an implementation MUST NOT need them to conform.
+- **Self-crediting.** The credit-grant seam (§7.3) MUST NOT be reachable by the spending caller.
+- **Scheduling, memory, and task tracking are out of scope.** They belong to the Agent (the
+  brain), not the body; an implementation MUST NOT need them to conform.
 
-## 10. Extensibility
+## 9. Extensibility
 
-The six primitives are the starting set, not the ceiling. New primitives (e.g. `publish`,
-`analytics`) MUST be **additive** — defined as a new port + adapter and, if Agent-facing, a new
-endpoint — without changing existing primitive interfaces or the Todo lifecycle. Breaking
-changes to a primitive interface or to §6/§7 require a protocol version bump.
+The five faculties are the starting set, not the ceiling. New operations (a new faculty method, or
+a new faculty such as `publish`) MUST be **additive** — a new entry in the operation registry (§6)
+plus, for a new faculty, a port + adapter — without changing existing faculty interfaces. Because
+the registry is the single source of truth, an added operation surfaces in the server, the SDK,
+and any OpenAPI description from one definition. Breaking changes to a faculty interface or to §7
+require a protocol version bump.
 
-## 11. Reference adapters (informative)
+## 10. Reference adapters (informative)
 
 These satisfy the interfaces above; any equivalent adapter conforms.
 
-| Primitive | Reference adapter | Alternatives |
+| Faculty | Reference adapter | Alternatives |
 |---|---|---|
 | Phone | AgentPhone | Twilio |
 | Email | AgentMail | Postmark, SendGrid |
 | Wallet | AgentCard | Stripe Issuing, Lithic |
 | Sandbox | Freestyle (VM + git) | E2B, Modal, Vercel Sandbox (via ComputeSDK) |
 | FileSystem | Archil disk on R2 (+ CDN) | S3, GCS, R2 directly |
-| Todo / host | Convex (DB + HTTP actions) | any DB + HTTP server |
+| Gateway / host | Convex (DB + HTTP actions) | any DB + HTTP server |
 
-## 12. Reference deployment (informative)
+## 11. Reference deployment (informative)
 
-The included implementation is **single-node, personal** (one Principal, no tenant model),
-hosted on Convex:
+The included implementation is **single-node, personal** (one Principal, no tenant model), hosted
+on Convex:
 
-- Convex is the **composition root + host**, not a primitive. HTTP actions front the contract;
-  per-key **accounts** gate them (admin = unmetered, metered = credit-gated); the operator mints keys via `accounts:mintKey`.
+- Convex is the **composition root + host**, not a faculty. HTTP actions front the contract; the
+  gateway builds every route from the typed operation registry. Per-key **accounts** gate each
+  call; the operator mints keys (e.g. `accounts:mintKey`).
 - Vendor keys live in Convex environment variables, read server-side.
-- Vendor SDKs require Node, so vendor-touching operations run in a Convex `"use node"` action;
-  Todo CRUD runs in the isolate runtime and delegates to it.
+- Vendor SDKs require Node, so faculty calls run in a Convex `"use node"` action; the
+  isolate-runtime gateway delegates to them.
 - Compute = Freestyle (Sandbox); storage = Archil disk backed by an R2 bucket (FileSystem +
-  personal CDN). Convex's scheduler/vector/functions are deliberately **not** exposed as
-  primitives (§9).
+  personal CDN). The event ledger and accounts/rate-limit counters are Convex tables. Convex's
+  scheduler/vector/functions are deliberately **not** exposed as faculties (§8).
 
 See [GETTING_STARTED.md](./GETTING_STARTED.md) to run it (including headless, no-login operation
 via `CONVEX_AGENT_MODE=anonymous`).
@@ -283,10 +252,11 @@ via `CONVEX_AGENT_MODE=anonymous`).
 
 ## Glossary
 
-- **Assistant / body** — the conforming backend; the primitives, headless.
-- **Agent / brain** — the external caller; bring your own.
+- **Assistant / body** — the conforming backend; the faculties + gateway, headless.
+- **Agent / brain** — the external caller; bring your own. Owns task tracking.
 - **Principal** — the customer.
-- **Provider** — operator of a deployment (the Principal, when self-hosting).
-- **Primitive / port** — one of the six interfaces (§5), extensible (§10).
-- **Adapter** — a concrete implementation of a primitive (§11).
-- **Todo** — the deterministic work-state resource and lifecycle (§6).
+- **Provider** — operator of a deployment (the Principal, when self-hosting); mints API keys.
+- **Faculty / port** — one of the five interfaces (§5), extensible (§9).
+- **Adapter** — a concrete implementation of a faculty (§10).
+- **Gateway** — the deterministic spine: auth, metering, rate limits, events, routing.
+- **Operation** — a named registry entry (method, path, input, output, cost) the gateway exposes.
