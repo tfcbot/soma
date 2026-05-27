@@ -1,18 +1,17 @@
 # Soma
 
-> A programmable body for an agent's brain. An open, self-hostable template: **clone it, deploy your own, customize the primitives.**
+> A programmable body for an agent's brain. An open, self-hostable template: **clone it, deploy your own, extend it.**
 
-A small, open primitive: **a programmable body for an agent's brain.**
+**Five faculties** — **phone, email, wallet, computer, storage** — exposed directly through one
+metered **gateway**. They give an agent a *complete loop* to pursue a goal on the internet. We
+**operate no agents**; we expose the faculties so *someone else's* agent has everything it needs.
+We open-source the body; you bring the brain — and the brain coordinates its own work (Soma is not
+a task manager).
 
-Six primitives — **phone, email, wallet, computer, storage, todo** — exposed through one
-opinionated API. They give an agent a *complete loop* to pursue a goal on the internet. We
-**operate no agents**; we expose the primitives so *someone else's* agent has everything it
-needs. We open-source the body; you bring the brain.
-
-We are deliberately **not** integrating with everything. The bet is that these six primitives
-are enough to let an agent operate in the world on someone's behalf — and that the constraint
-is what makes the thing buildable, ownable, and extensible. More primitives can be added later
-the same way (we're a thin wrapper around vendors).
+We are deliberately **not** integrating with everything. The bet is that these five faculties,
+behind a keyed/metered/observable gateway, are enough for an agent to operate in the world on
+someone's behalf. New faculties are added the same way every endpoint is: a typed contract entry
+plus one handler (see [Extending the gateway](#extending-the-gateway-type-safe)).
 
 ## The one-liner
 
@@ -25,38 +24,36 @@ And the abstraction level-up ([THESIS.md](./THESIS.md)):
 > We move the client up one rung — from owning a **VPS** (a server that degrades the moment you
 > stop maintaining it) to owning a **personal API** (a versioned contract their agent calls).
 > It's the **Backend-for-Frontend** pattern from web dev, reframed as a **Backend-for-Agent**:
-> one tuned contract over six messy vendors. The thing that rots now lives behind the contract,
+> one tuned contract over the messy vendors. The thing that rots now lives behind the contract,
 > on the provider's side — the client never owns the part that degrades.
 
-## The six primitives
+## Five faculties + a gateway
 
-| Primitive | What it gives the agent | Reference adapter |
+| Faculty | What it gives the agent | Reference adapter |
 |---|---|---|
-| **Phone** | reach / brief by voice, SMS, iMessage | AgentPhone |
+| **Phone** | reach / brief by SMS (voice, iMessage later) | AgentPhone |
 | **Email** | correspond, sign up for services, deliver assets | AgentMail |
 | **Wallet** | pay — a prepaid virtual card with a hard ceiling | AgentCard |
 | **Computer** | run code, unrestricted, sandboxed (`Sandbox` port) | Freestyle VM (ffmpeg, no 5-min cap) |
 | **Storage** | hold state + deliverables, serve them (`FileSystem` port) | Archil disk on R2 + CDN |
-| **Todo** | track and coordinate the work (`/todo` state machine) | Convex DB |
 
-The first build is a **single-node, personal** deployment (SPEC.md §12). Compute and storage
-are split into two planes: a **Sandbox** (Freestyle: compute + git versioned workspace) and a
-**FileSystem** (Archil backed by an R2 bucket = durable blobs + a personal CDN).
+The **gateway** is the durable spine the agent actually calls: per-key accounts, per-call credit
+metering (402), opt-in rate limits (429), and a generic event ledger (observability + webhooks).
+Task tracking is **not** a primitive — the agent brain owns it. The first build is a **single-node,
+personal** deployment (SPEC.md §12).
 
 ## Architecture (true hexagonal — ports & adapters)
 
 ```
-core/        pure hexagon, zero vendor/Convex imports
-  ports/       the 6 primitive interfaces
-  domain/      todo state machine + budget envelope (+ tests)
-  services/    TodoService, Assistant (orchestration), Versioning (+ tests)
-adapters/    one folder per vendor: a real adapter + a mock (mocks double as test spies)
-convex/      the host
-  http.ts      HTTP router + API-key auth (isolate runtime; todo CRUD)
-  node.ts      "use node" — vendor-touching ops (deliver, fundCard) run here
-  composition.ts  the composition root: real adapter if key present, else mock
-  schema.ts / todos.ts / auth.ts / adapters/todoStore.ts
-mcp/         dependency-free gateway client for agents
+packages/contract/  the typed operation registry (Zod) — THE single source of truth
+core/        pure hexagon: the 5 faculty ports + domain (credits, ratelimit) + tests
+adapters/    one folder per faculty: a real adapter + a mock (mocks double as test spies)
+convex/      the host / gateway
+  gateway.ts   builds every HTTP route from the registry: auth → 429 → 402 → handler → event
+  handlers.ts  the typed handler map (one per op; a mismatch is a compile error)
+  node.ts      "use node" — vendor-touching faculty calls run here
+  accounts.ts / ratelimit.ts / events.ts / auth.ts / composition.ts / http.ts
+packages/{sdk,cli,mcp}/  all derived from packages/contract (no codegen — shared types)
 ```
 
 Key boundary: vendor SDKs need Node, so vendor calls run in `convex/node.ts`; the isolate-runtime
@@ -85,10 +82,10 @@ CONVEX_AGENT_MODE=anonymous bunx convex dev  # local backend on mock adapters
 
 What you customize:
 
-- **The six primitives** — each is a port with a real adapter + a mock (`adapters/<primitive>/`).
+- **The five faculties** — each is a port with a real adapter + a mock (`adapters/<faculty>/`).
   Swap a vendor by writing a new adapter against the same port; the contract never changes.
-- **The contract** — add or change endpoints in `spec/` (TypeSpec), then `bun run generate` to
-  regenerate the SDK, CLI, and MCP server from the spec.
+- **The contract** — add or change operations in `packages/contract` (typed Zod registry); the
+  server handler, SDK, CLI, MCP, and OpenAPI all derive from it (no codegen — shared types).
 - **The deployment** — single-node Convex (SPEC §12). Bring your own keys; you own the deployment.
 
 The CLI installer (`packages/cli/install.sh`) pulls binaries from this repo's GitHub Releases.
@@ -97,7 +94,7 @@ If you redistribute your own build, change `REPO=` in that script to your fork.
 ## Charging for usage (optional)
 
 Soma is a framework: it ships the *metering*, not a payment processor. Each endpoint has a
-credit cost in `core/domain/pricing.ts` (0 = free). A bearer key is an account with a credit
+credit cost in the contract registry `packages/contract/src/operations.ts` (0 = free). A bearer key is an account with a credit
 balance; billable calls debit it, and an empty balance returns `402` with a `topupUrl` and a
 `WWW-Authenticate: Payment` header (agent-native — an x402/MPP agent can settle inline).
 
@@ -113,6 +110,17 @@ and call `grantCredits` from its `checkout.session.completed` handler; point `SO
 at your checkout. Optional abuse protection: set `SOMA_RATE_LIMIT_PER_MIN` (per account, per
 operation) to get `429 + Retry-After`. None of this is on by default.
 
+## Extending the gateway (type-safe)
+
+Adding an endpoint is a spec-first, type-checked edit — no codegen, because in a monorepo the
+server and clients share one definition:
+
+1. Add an operation to `packages/contract/src/operations.ts` (path, method, Zod input/output, cost).
+2. Implement one handler in `convex/handlers.ts` — TypeScript forces its signature to match the
+   operation's input/output (a mismatch fails `tsc`).
+3. Done. The HTTP route (auth + metering + events), the typed SDK method, the MCP tool, the CLI
+   command, and the OpenAPI spec all derive from that single entry.
+
 ## Quickstart
 
 ```bash
@@ -126,9 +134,11 @@ CONVEX_AGENT_MODE=anonymous bunx convex dev --once --typecheck enable
 CONVEX_AGENT_MODE=anonymous bunx convex dev            # keep the local backend running
 # Mint a key (operator-owned). Prints the plaintext key once; 0-cost ops work on any balance:
 KEY=$(CONVEX_AGENT_MODE=anonymous bunx convex run accounts:mintKey '{"label":"owner"}' | jq -r .apiKey)
-curl -s -X POST http://127.0.0.1:3211/v1/todo \
+# Call a faculty (free op shown; phone/email/wallet/sandbox/fs all work the same way):
+curl -s http://127.0.0.1:3211/v1/balance -H "Authorization: Bearer $KEY"
+curl -s -X POST http://127.0.0.1:3211/v1/phone/messages \
   -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-  -d '{"title":"smoke","brief":"verify it runs"}'
+  -d '{"to":"+15551230000","body":"hello from the body"}'
 ```
 
 Connect real providers one at a time by setting their keys (see `.env.example` and
@@ -137,9 +147,9 @@ Connect real providers one at a time by setting their keys (see `.env.example` a
 ## Docs
 
 - [SPEC.md](./SPEC.md) — the **normative protocol**, implementable by anyone (OAuth-style):
-  roles, conformance, the six primitive interfaces, the Todo resource + lifecycle state machine,
-  the Gateway HTTP API + auth, the budget envelope, security, extensibility, and the single-node
-  Convex reference deployment.
+  roles, conformance, the five faculty interfaces, the Gateway HTTP API + per-key accounts +
+  metering (402) + rate limits (429) + the event ledger, security, extensibility, and the
+  single-node Convex reference deployment.
 - [THESIS.md](./THESIS.md) — the **reasoning and philosophy**: body/brain split, dependency
   inversion, why raw-API+skills rots, the deterministic firebreak, cost control, the
   VPS→personal-API ladder, Backend-for-Agent, and the Agent Success Manager.
@@ -152,7 +162,7 @@ Connect real providers one at a time by setting their keys (see `.env.example` a
 
 Working scaffold; **not yet integration-tested against live vendors.**
 
-- **Built:** hexagonal core; the six primitives; real vendor adapters (AgentMail, AgentPhone,
+- **Built:** hexagonal core; the five faculties + gateway; real vendor adapters (AgentMail, AgentPhone,
   AgentCard, Freestyle, Archil-via-R2) coded against the actual SDK/REST contracts; Convex backend.
 - **Verified:** `tsc` typecheck clean; **29 unit tests pass** (domain, services, orchestration,
   versioning, mock contracts); the Convex backend **codegens, typechecks, and deploys** to a local

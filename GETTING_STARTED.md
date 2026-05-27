@@ -72,31 +72,33 @@ Convex prints your HTTP URL (looks like `https://<name>.convex.site`). Then:
 URL="https://<name>.convex.site"
 KEY="<the apiKey from accounts:mintKey>"
 
-# Create a todo (intake) — returns it in state "requested"
-curl -s -X POST "$URL/v1/todo" \
+# Check your balance (free)
+curl -s "$URL/v1/balance" -H "Authorization: Bearer $KEY"
+
+# Call a faculty — send an SMS (debits the key's credits per the op's cost)
+curl -s -X POST "$URL/v1/phone/messages" \
   -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-  -d '{"title":"October ads — 10x","brief":"10 ads, 9:16, sleep supplement","channelOrigin":"api"}'
+  -d '{"to":"+15551230000","body":"hello from the body"}'
 
-# List all work state
-curl -s "$URL/v1/todo" -H "Authorization: Bearer $KEY"
-
-# Advance it (provider side): requested → accepted
-curl -s -X POST "$URL/v1/todo/<id>/advance" \
+# Run code in the sandbox; write/read a file; list storage
+curl -s -X POST "$URL/v1/sandbox/exec" \
   -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-  -d '{"to":"accepted"}'
+  -d '{"command":"echo hi"}'
 
-# Missing/!wrong key → 401
-curl -s -o /dev/null -w "%{http_code}\n" "$URL/v1/todo"
+# See your usage events
+curl -s "$URL/v1/events" -H "Authorization: Bearer $KEY"
+
+# Missing/wrong key → 401
+curl -s -o /dev/null -w "%{http_code}\n" "$URL/v1/balance"
 ```
 
-An illegal transition (e.g. `requested → delivered`) returns **409** — the state machine
-(`core/domain/todo.ts`) enforces the lifecycle.
+A metered key with too few credits gets **402** (with a `topupUrl`); an over-rate key gets **429**.
 
 ## 6. Point your agent at it
 
-An agent (Claude) drives the primitives over the same endpoints. `mcp/server.ts` is a
-dependency-free client (`createTodo`, `listTodos`, `getTodo`, `commentTodo`); wrap it with
-`@modelcontextprotocol/sdk` to expose each as an MCP tool, configured with your `baseUrl` + an account API key.
+An agent (Claude) drives the faculties over these endpoints. The `soma` SDK (`packages/sdk`) gives
+typed methods; `packages/mcp` exposes one MCP tool per faculty; `packages/cli` one command each —
+all derived from `packages/contract`. Point any of them at your `baseUrl` + an account API key.
 
 ## Tests & typecheck
 
@@ -110,7 +112,7 @@ The `convex/` tree typechecks under `npx convex dev` once `_generated/` exists.
 ## Layout
 
 ```
-core/      pure hexagon — ports (the 6 primitives), domain (todo state machine, budget), services
+core/      pure hexagon — the 5 faculty ports, domain (credits, ratelimit); packages/contract = registry
 adapters/  one folder per vendor: real adapter + parallel mock
 convex/    the host — schema, DB fns, auth, composition root, HTTP router
 mcp/       dependency-free gateway client for agents

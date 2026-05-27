@@ -1,8 +1,11 @@
 "use node";
 import type { ActionCtx } from "./_generated/server";
-import type { Ports } from "../core/services/assistant";
 
-import { convexTodoStore } from "./adapters/todoStore";
+import type { Phone } from "../core/ports/phone";
+import type { Email } from "../core/ports/email";
+import type { Wallet } from "../core/ports/wallet";
+import type { Sandbox } from "../core/ports/sandbox";
+import type { FileSystem } from "../core/ports/filesystem";
 
 import { MockPhone } from "../adapters/phone/mock";
 import { MockEmail } from "../adapters/email/mock";
@@ -16,9 +19,17 @@ import { AgentCard } from "../adapters/wallet/agentcard";
 import { FreestyleSandbox } from "../adapters/sandbox/freestyle";
 import { ArchilFileSystem } from "../adapters/filesystem/archil";
 
-// The composition root. Each port → real adapter when its key(s) are present, else the mock.
-// The todo store is always Convex DB (the host is the persistent store).
-export function buildPorts(ctx: ActionCtx): Ports {
+// The five faculties the agent borrows. Each port → real adapter when its key(s) are present,
+// else the mock. (Todo/budget were workflow constructs and have been removed.)
+export interface Ports {
+  phone: Phone;
+  email: Email;
+  wallet: Wallet;
+  sandbox: Sandbox;
+  filesystem: FileSystem;
+}
+
+export function buildPorts(_ctx: ActionCtx): Ports {
   const env = process.env;
   const hasArchil =
     env.ARCHIL_DISK_ID &&
@@ -29,7 +40,6 @@ export function buildPorts(ctx: ActionCtx): Ports {
     env.CDN_BASE_URL;
 
   return {
-    todos: convexTodoStore(ctx),
     phone:
       env.AGENTPHONE_API_KEY && env.AGENTPHONE_AGENT_ID
         ? new AgentPhone(env.AGENTPHONE_API_KEY, env.AGENTPHONE_AGENT_ID)
@@ -42,9 +52,7 @@ export function buildPorts(ctx: ActionCtx): Ports {
       env.AGENTCARD_API_KEY && env.AGENTCARD_CARDHOLDER_ID
         ? new AgentCard(env.AGENTCARD_API_KEY, env.AGENTCARD_CARDHOLDER_ID)
         : new MockWallet(),
-    sandbox: env.FREESTYLE_API_KEY
-      ? new FreestyleSandbox(env.FREESTYLE_API_KEY)
-      : new MockSandbox(),
+    sandbox: env.FREESTYLE_API_KEY ? new FreestyleSandbox(env.FREESTYLE_API_KEY) : new MockSandbox(),
     filesystem: hasArchil
       ? new ArchilFileSystem({
           diskId: env.ARCHIL_DISK_ID!,
