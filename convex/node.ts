@@ -3,7 +3,7 @@ import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { buildPorts } from "./composition";
 
-// Vendor-touching faculty calls run here (Node runtime — vendor SDKs). One action per faculty
+// Vendor-touching primitive calls run here (Node runtime — vendor SDKs). One action per primitive
 // operation; the isolate-runtime handlers (convex/handlers.ts) delegate to these. Binary payloads
 // cross as base64 (decoded/encoded at this boundary).
 

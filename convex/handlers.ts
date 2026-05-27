@@ -2,7 +2,7 @@ import { internal, api } from "./_generated/api";
 import type { Handlers } from "./gateway";
 
 // The typed handler map — the one place per-operation logic lives. Typed against the registry
-// (Handlers), so a missing or mis-shaped handler is a COMPILE error. Faculty handlers delegate
+// (Handlers), so a missing or mis-shaped handler is a COMPILE error. Primitive handlers delegate
 // to Node-runtime actions (vendor SDKs); gateway-facing reads run inline.
 export const handlers: Handlers = {
   phoneSendSms: (ctx, _a, input) => ctx.runAction(internal.node.phoneSendSms, input),

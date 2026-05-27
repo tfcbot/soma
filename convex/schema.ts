@@ -24,7 +24,7 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_key", ["key"]),
 
-  // Generic usage/observability ledger — one row per gated faculty call.
+  // Generic usage/observability ledger — one row per gated primitive call.
   events: defineTable({
     accountId: v.string(),
     op: v.string(),

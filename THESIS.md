@@ -8,7 +8,7 @@ implement-anywhere contract lives in [SPEC.md](./SPEC.md), and a concrete walkth
 
 ## 1. The idea: a body for an agent's brain
 
-There is a small, fixed set of faculties that turn a language model into something that can
+There is a small, fixed set of primitives that turn a language model into something that can
 operate in the world on someone's behalf: a **phone**, an **email**, a **wallet**, a
 **computer**, and **storage**. Bundle those behind a metered gateway and an agent has a
 *complete loop* — it can be briefed, do the work, pay for tools, keep its outputs, and report
@@ -17,7 +17,7 @@ coordinating the work is the agent brain's job, not the body's.
 
 | | What it is | Who owns it |
 |---|---|---|
-| **Soma** (the body) | the faculties | provided/hosted; headless |
+| **Soma** (the body) | the primitives | provided/hosted; headless |
 | **Agent** (the brain) | the LLM loop, reasoning, data connections | the principal (bring your own) |
 
 We open-source **the body**. You bring **the brain**. The principal already has an agent —

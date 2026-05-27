@@ -7,9 +7,9 @@ import { setApiKey, setApiUrl, getConfig, CONFIG_FILE } from "./client";
 
 // One subcommand per registry operation (registry-driven — adding an op adds a command for free).
 // Each takes a single --input JSON flag; the server validates it against the op's Zod schema.
-const facultyCommands: Record<string, ReturnType<typeof defineCommand>> = {};
+const primitiveCommands: Record<string, ReturnType<typeof defineCommand>> = {};
 for (const [opId, op] of Object.entries(operations)) {
-  facultyCommands[opId] = defineCommand({
+  primitiveCommands[opId] = defineCommand({
     meta: { name: opId, description: `${op.summary} (${op.method} ${op.path})` },
     args: { input: { type: "string", description: "JSON input, e.g. '{\"to\":\"+1…\",\"body\":\"hi\"}'" } },
     async run({ args }) {
@@ -44,6 +44,6 @@ const version = defineCommand({
 runMain(
   defineCommand({
     meta: { name: "soma", version: VERSION, description: "Soma — a programmable body for an agent's brain." },
-    subCommands: { auth, version, ...facultyCommands },
+    subCommands: { auth, version, ...primitiveCommands },
   }),
 );
