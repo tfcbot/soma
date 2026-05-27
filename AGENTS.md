@@ -62,6 +62,17 @@ The Convex bundler can't resolve the workspace package name, so:
 - **Inside a module**: import `op`/`Base64` from `../../packages/contract/src/...`; adapters import the
   port interface from `./operations` (the same folder).
 
+## Per-op policy & the middleware pipeline
+
+The gateway is a composed middleware pipeline (Middy-style: before/after/onError over a shared
+request) — `events → auth → rateLimit → meter → validate → dispatch`. Each cross-cutting concern
+is one wrapper; an op opts out via its policy fields in the registry:
+- `auth: "public"` — skip auth + metering (unauthenticated endpoint).
+- `metered: false` (or `costCents: 0`) — free; the credit gate is skipped, the event is still logged.
+A debit is auto-refunded if the call short-circuits after charging (e.g. a 400) or throws. Adding a
+new cross-cutting concern (audit, idempotency, caching) = one more middleware in `convex/gateway.ts`,
+not an edit to every handler.
+
 ## Compile-time guards
 - `serve` must name a real `Ports` method — assertion in `packages/contract/src/ports.ts`.
 - Each adapter `implements <Port>` — can't drift from the registry's input/output.
