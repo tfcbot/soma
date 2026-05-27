@@ -1,0 +1,743 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Soma — Programmable Assistant",
+    "version": "0.1.0"
+  },
+  "tags": [
+    {
+      "name": "Todo"
+    }
+  ],
+  "paths": {
+    "/v1/todo": {
+      "post": {
+        "operationId": "createTodo",
+        "summary": "Intake a todo",
+        "description": "Create a todo in `requested`. The single client write.",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "201 Created — the new todo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Todo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 Bad Request — missing or invalid fields.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 Unauthorized — missing or invalid 'Authorization: Bearer <key>'.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Todo"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTodoRequest"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "listTodos",
+        "summary": "List todos",
+        "description": "Return all work state.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Todo"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 Unauthorized — missing or invalid 'Authorization: Bearer <key>'.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Todo"
+        ]
+      }
+    },
+    "/v1/todo/{id}": {
+      "get": {
+        "operationId": "getTodo",
+        "summary": "Get a todo",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Todo"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 Unauthorized — missing or invalid 'Authorization: Bearer <key>'.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 Not Found — no todo with that id, or unknown action.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Todo"
+        ]
+      }
+    },
+    "/v1/todo/{id}/advance": {
+      "post": {
+        "operationId": "advanceTodo",
+        "summary": "Advance a todo's state",
+        "description": "Move the todo along a legal lifecycle edge. Illegal edges return 409.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Todo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 Bad Request — missing or invalid fields.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 Conflict — illegal state transition or vendor operation failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Todo"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdvanceRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/todo/{id}/comment": {
+      "post": {
+        "operationId": "commentTodo",
+        "summary": "Comment on a todo",
+        "description": "Append a note. On a delivered todo, bounces it to `revise`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Todo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 Bad Request — missing or invalid fields.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 Conflict — illegal state transition or vendor operation failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Todo"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/todo/{id}/deliver": {
+      "post": {
+        "operationId": "deliverTodo",
+        "summary": "Deliver an artifact",
+        "description": "Publish a sandbox artifact to the filesystem/CDN, mark delivered, and notify by email.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Todo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 Bad Request — missing or invalid fields.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 Conflict — illegal state transition or vendor operation failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Todo"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeliverRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/todo/{id}/fund": {
+      "post": {
+        "operationId": "fundTodo",
+        "summary": "Fund a prepaid card",
+        "description": "Issue a prepaid card within the todo's budget envelope.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FundResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400 Bad Request — missing or invalid fields.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 Conflict — illegal state transition or vendor operation failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Todo"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FundRequest"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "components": {
+    "schemas": {
+      "AdvanceRequest": {
+        "type": "object",
+        "required": [
+          "to"
+        ],
+        "properties": {
+          "to": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TodoState"
+              }
+            ],
+            "description": "Target state. Must be a legal edge from the current state."
+          }
+        }
+      },
+      "ApiError": {
+        "type": "object",
+        "required": [
+          "error",
+          "message"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Machine-readable error code, e.g. bad_request, not_found, operation_error."
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable explanation."
+          }
+        },
+        "description": "Error envelope returned by every non-2xx response."
+      },
+      "BearerAuth": {
+        "type": "object",
+        "required": [
+          "type",
+          "scheme"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "http"
+            ],
+            "description": "Http authentication"
+          },
+          "scheme": {
+            "type": "string",
+            "enum": [
+              "bearer"
+            ],
+            "description": "bearer auth scheme"
+          }
+        },
+        "description": ""
+      },
+      "BudgetRef": {
+        "type": "object",
+        "required": [
+          "authorized",
+          "spent",
+          "currency"
+        ],
+        "properties": {
+          "authorized": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Authorized ceiling, in cents."
+          },
+          "spent": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Amount spent so far, in cents."
+          },
+          "currency": {
+            "type": "string",
+            "description": "ISO 4217 currency code, e.g. USD."
+          }
+        },
+        "description": "The authorized spend envelope for a todo. The prepaid card limit is the hard ceiling."
+      },
+      "CommentRequest": {
+        "type": "object",
+        "required": [
+          "note"
+        ],
+        "properties": {
+          "note": {
+            "type": "string",
+            "description": "A note. On a `delivered` todo this bounces it to `revise`."
+          }
+        }
+      },
+      "CreateTodoRequest": {
+        "type": "object",
+        "required": [
+          "title",
+          "brief"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "brief": {
+            "type": "string"
+          },
+          "channelOrigin": {
+            "type": "string"
+          },
+          "budget": {
+            "$ref": "#/components/schemas/BudgetRef"
+          }
+        },
+        "description": "Intake body — the one client write. Creates a todo in `requested`."
+      },
+      "DeliverRequest": {
+        "type": "object",
+        "required": [
+          "sandboxPath",
+          "filename",
+          "recipient"
+        ],
+        "properties": {
+          "sandboxPath": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "recipient": {
+            "type": "string",
+            "description": "Email recipient for the delivery notification."
+          }
+        },
+        "description": "Deliver an artifact: pull from sandbox → publish to filesystem/CDN → mark delivered → email."
+      },
+      "FundRequest": {
+        "type": "object",
+        "required": [
+          "amountCents",
+          "memo"
+        ],
+        "properties": {
+          "amountCents": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "memo": {
+            "type": "string"
+          },
+          "recipient": {
+            "type": "string",
+            "description": "Optional phone/email to notify that a card was funded."
+          }
+        },
+        "description": "Provision a prepaid card within the todo's authorized budget envelope."
+      },
+      "FundResult": {
+        "type": "object",
+        "required": [
+          "todo",
+          "card"
+        ],
+        "properties": {
+          "todo": {
+            "$ref": "#/components/schemas/Todo"
+          },
+          "card": {
+            "$ref": "#/components/schemas/IssuedCard"
+          }
+        },
+        "description": "Result of funding a card for a todo: the updated todo plus the issued card."
+      },
+      "IssuedCard": {
+        "type": "object",
+        "required": [
+          "id",
+          "pan",
+          "cvv",
+          "expiry",
+          "spendLimitCents"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "pan": {
+            "type": "string"
+          },
+          "cvv": {
+            "type": "string"
+          },
+          "expiry": {
+            "type": "string"
+          },
+          "spendLimitCents": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "last4": {
+            "type": "string"
+          }
+        },
+        "description": "A prepaid virtual card issued against a todo's budget envelope."
+      },
+      "Todo": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "state",
+          "brief",
+          "artifacts",
+          "history",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Server-assigned id, e.g. td_…."
+          },
+          "title": {
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/TodoState"
+          },
+          "brief": {
+            "type": "string"
+          },
+          "channelOrigin": {
+            "type": "string",
+            "description": "Where the work was briefed from, e.g. sms:+1…, email:…"
+          },
+          "budget": {
+            "$ref": "#/components/schemas/BudgetRef"
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Deliverable pointers (archil://… / s3://… / CDN url), populated at `delivered`."
+          },
+          "ref": {
+            "$ref": "#/components/schemas/TodoRef"
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TodoHistoryEntry"
+            }
+          },
+          "createdAt": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Epoch milliseconds."
+          },
+          "updatedAt": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Epoch milliseconds."
+          }
+        },
+        "description": "The Todo: the unit of work and the unit of observability (SPEC.md §10)."
+      },
+      "TodoHistoryEntry": {
+        "type": "object",
+        "required": [
+          "state",
+          "ts",
+          "actor"
+        ],
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/TodoState"
+          },
+          "ts": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Epoch milliseconds."
+          },
+          "actor": {
+            "type": "string",
+            "description": "Who caused the transition, e.g. provider, agent, principal."
+          }
+        },
+        "description": "One entry in a todo's append-only state history."
+      },
+      "TodoRef": {
+        "type": "object",
+        "required": [
+          "branch",
+          "commit"
+        ],
+        "properties": {
+          "branch": {
+            "type": "string"
+          },
+          "commit": {
+            "type": "string"
+          }
+        },
+        "description": "A git ref pinning the sandbox workspace state for a todo."
+      },
+      "TodoState": {
+        "type": "string",
+        "enum": [
+          "requested",
+          "accepted",
+          "in_production",
+          "qa",
+          "delivered",
+          "approved",
+          "revise"
+        ],
+        "description": "The fixed todo lifecycle (SPEC.md §10). Not a workflow engine — just legal states."
+      }
+    },
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.soma.example",
+      "description": "Provider deployment",
+      "variables": {}
+    }
+  ]
+}

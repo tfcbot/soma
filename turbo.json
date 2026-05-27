@@ -1,0 +1,13 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "generate": {
+      "inputs": ["../../spec/openapi/spec.json"],
+      "outputs": ["src/schema.d.ts", "src/methods.ts"]
+    },
+    "build": {
+      "dependsOn": ["^build", "generate"],
+      "outputs": ["dist/**"]
+    }
+  }
+}

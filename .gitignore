@@ -8,3 +8,6 @@ convex/_generated/
 bun.lockb
 *.log
 .DS_Store
+
+# TypeSpec intermediate output (canonical spec emitted to spec/openapi/spec.json)
+spec/tsp-output/

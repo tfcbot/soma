@@ -1,0 +1,19 @@
+{
+  "name": "soma-mcp",
+  "version": "0.1.0",
+  "description": "Soma MCP server — exposes the Programmable Assistant primitives as MCP tools for any agent.",
+  "type": "module",
+  "bin": {
+    "soma-mcp": "./dist/index.mjs"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "bun build src/index.ts --outfile dist/index.mjs --target node",
+    "dev": "bun run src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "soma": "workspace:*",
+    "zod": "^3.23.8"
+  }
+}

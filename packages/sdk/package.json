@@ -1,0 +1,29 @@
+{
+  "name": "soma",
+  "version": "0.1.0",
+  "description": "Soma — a programmable body for an agent's brain. Typed SDK for the Programmable Assistant API.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "src"],
+  "scripts": {
+    "generate": "bun scripts/generate-schema.ts && bun scripts/generate-methods.ts",
+    "build": "tsc",
+    "prepublishOnly": "bun run generate && bun run build"
+  },
+  "dependencies": {
+    "openapi-fetch": "^0.13.5"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.8.0",
+    "typescript": "^5.6.0",
+    "@types/node": "^22.0.0"
+  }
+}
