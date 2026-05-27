@@ -1,33 +1,39 @@
 # Workstation
 
-> A workstation for your AI brain. An open, self-hostable template: **clone it, deploy your own, extend it.**
+**Launch a pay-as-you-go workstation for your clients' agents.** Ship your service as a metered
+**API + CLI + MCP** — one typed contract, three surfaces — that an agent uses and pays for headlessly.
 
-**Five primitives** — **phone, email, wallet, computer, storage** — exposed directly through one
-metered **gateway**. They give an agent a *complete loop* to pursue a goal on the internet. We
-**operate no agents**; we expose the primitives so *someone else's* agent has everything it needs.
-We open-source the workstation; you bring the brain — and the brain coordinates its own work (Workstation is
-not a task manager). Run it for your own agent, or operate it for others — the metered gateway works the same.
+Your clients already have agents. The job isn't to deploy them another one — it's to give their
+agent the **semantic layer** it needs to use *your* service, in the way agents already talk: a tool
+to call, a command to run, an endpoint to hit. Workstation turns one typed contract into an API, a
+CLI, and an MCP server at once, behind a gateway that handles per-key accounts, usage metering, and
+self-serve payment. You run it headless; the client's agent calls it and settles the bill.
 
-We are deliberately **not** integrating with everything. The bet is that these five primitives,
-behind a keyed/metered/observable gateway, are enough for an agent to operate in the world on
-someone's behalf. New primitives are added the same way every endpoint is: a typed contract entry
-plus one handler (see [Extending the gateway](#extending-the-gateway-type-safe)).
+> Most AI products try to *be* the agent. This one refuses to. It's the workstation the agent
+> borrows — you provide the metered access layer, the client brings the brain.
 
-## The one-liner
+## The client experience
+1. **Connect to your service.** The client points their agent at it — add your **MCP** server, grab
+   the **CLI**, or install a skill you publish. (The MCP server and CLI are generated from your
+   contract; the skill is one you author.)
+2. **Get a payment link.** A keyless `POST /v1/signup {amountCents}` returns a pay-as-you-go
+   Checkout link. The human pays it — or an agent that speaks x402/MPP settles the `402` inline. A
+   scoped API key is **minted on payment** (shown once); top-ups work the same way.
+3. **Start using it.** Their agent calls your service — over MCP, the CLI, or the API — and every
+   call is metered against their balance. Out of credits → `402` with a top-up link.
 
-> Most AI products try to *be* the agent. This one refuses to. It is the workstation the agent
-> borrows — and a service model where the provider runs an **Agent Success Manager** instead
-> of a Customer Success Manager.
+## One contract → API, CLI, MCP, OpenAPI
+Define each operation once in a typed registry (`packages/contract`, Zod). From that single source,
+with **no codegen** (a monorepo shares types), you get the HTTP **API** (auth + metering + events), a
+typed **SDK**, a **CLI**, an **MCP** server, and a derived **OpenAPI** spec. Add or change an
+operation in one place and every surface updates in lockstep (see
+[Extending the gateway](#extending-the-gateway-type-safe)). That's how you ship a service to agents
+on every channel they speak — in one go.
 
-And the abstraction level-up ([THESIS.md](./THESIS.md)):
-
-> We move the client up one rung — from owning a **VPS** (a server that degrades the moment you
-> stop maintaining it) to owning a **personal API** (a versioned contract their agent calls).
-> It's the **Backend-for-Frontend** pattern from web dev, reframed as a **Backend-for-Agent**:
-> one tuned contract over the messy vendors. The thing that rots now lives behind the contract,
-> on the provider's side — the client never owns the part that degrades.
-
-## Five primitives + a gateway
+## Batteries included — five primitives + a gateway
+The reference build ships five ready capabilities, so you start from a working service rather than a
+blank contract. Use them, swap the vendor behind any one, or add your own (a capability = one
+`modules/<name>/` folder).
 
 | Primitive | What it gives the agent | Reference adapter |
 |---|---|---|
@@ -38,9 +44,9 @@ And the abstraction level-up ([THESIS.md](./THESIS.md)):
 | **Storage** | hold state + deliverables, serve them (`FileSystem` port) | Archil disk on R2 + CDN |
 
 The **gateway** is the durable spine the agent actually calls: per-key accounts, per-call credit
-metering (402), opt-in rate limits (429), and a generic event ledger (observability + webhooks).
-Task tracking is **not** a primitive — the agent brain owns it. The first build is a **single-node,
-personal** deployment (SPEC.md §11).
+metering (402), opt-in rate limits (429), scoped keys (403), and a generic event ledger
+(observability + webhooks). Task tracking is **not** a primitive — the agent brain owns it. The
+first build is a **single-node** deployment (SPEC.md §11).
 
 ## Architecture (true hexagonal — ports & adapters)
 

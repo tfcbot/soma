@@ -10,10 +10,11 @@ metadata:
 
 # Set up a Workstation
 
-Workstation is a headless contract for agents that do work: five primitives (phone, email,
-wallet, computer, storage) behind one metered gateway (per-key accounts, credits, rate limits,
-scopes, an event ledger). This skill takes a user from nothing to a deployed paid Workstation in
-three phases. **Get each phase green before starting the next.** Work in small, verified steps; confirm
+Workstation lets you ship your service as a metered **API + CLI + MCP** — one typed contract, three
+surfaces — that your clients' agents use and pay for headlessly. It ships five reference primitives
+(phone, email, wallet, computer, storage) behind one gateway (per-key accounts, credits, rate
+limits, scopes, an event ledger), but the real job is packaging *your* capabilities the same way.
+This skill takes a user from nothing to a deployed, paid Workstation in three phases. **Get each phase green before starting the next.** Work in small, verified steps; confirm
 each before moving on. The repo's `AGENTS.md` has the canonical add-a-capability recipe.
 
 ---
