@@ -127,6 +127,21 @@ server and clients share one definition:
 3. Done. The HTTP route (auth + metering + events), the typed SDK method, the MCP tool, the CLI
    command, and the OpenAPI spec all derive from that single entry.
 
+## Customize with an agent
+
+Point your agent at this repo and let it do the setup. Install the bundled skill:
+
+```bash
+npx skills add tfcbot/workstation
+```
+
+[![skills.sh](https://skills.sh/b/tfcbot/workstation)](https://www.skills.sh)
+
+Then tell your agent "set up my workstation" (or "add a <vendor> primitive", "mint a scoped key",
+"launch the backend"). The `customize-workstation` skill walks it through scaffolding capabilities,
+wiring vendor env vars, minting scoped keys with credits, and deploying — driving the recipe in
+[AGENTS.md](./AGENTS.md).
+
 ## Quickstart
 
 ```bash
