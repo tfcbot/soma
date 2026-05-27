@@ -1,8 +1,8 @@
 import type { HttpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { internal, api } from "./_generated/api";
-import { json, paymentRequired, rateLimited, resolveAccount, type Account } from "./auth";
-import { operations, type OperationId } from "../packages/contract/src/index";
+import { json, paymentRequired, rateLimited, forbidden, resolveAccount, type Account } from "./auth";
+import { operations, scopeAllows, scopeOf, type OperationId } from "../packages/contract/src/index";
 import { gatewayHandlers } from "./gatewayHandlers";
 import { runPipeline, type Middleware, type GwRequest } from "./middleware";
 
@@ -25,6 +25,16 @@ const auth: Middleware = {
     const a = await resolveAccount(r.ctx, r.httpRequest);
     if (a instanceof Response) r.response = a;
     else r.account = a;
+  },
+};
+
+const authz: Middleware = {
+  name: "authz",
+  before(r) {
+    if (!r.account) return; // public ops carry no key to scope-check
+    if (!scopeAllows(r.account.scopes, r.op)) {
+      r.response = forbidden(`key not scoped for ${scopeOf(r.op)}`);
+    }
   },
 };
 
@@ -92,6 +102,7 @@ const events: Middleware = {
       ? "ok"
       : r.response?.status === 402 ? "payment_required"
       : r.response?.status === 429 ? "rate_limited"
+      : r.response?.status === 403 ? "forbidden"
       : "error";
     await record(r, status);
   },
@@ -125,7 +136,7 @@ async function dispatch(r: GwRequest) {
 
 export function buildRouter(router: HttpRouter): void {
   for (const [opId, op] of Object.entries(operations)) {
-    const stack: Middleware[] = [events, auth, rateLimit, meter, validate];
+    const stack: Middleware[] = [events, auth, authz, rateLimit, meter, validate];
     const pipeline = runPipeline(stack, dispatch);
     const handler = httpAction(async (ctx, httpRequest) => {
       const r: GwRequest = {

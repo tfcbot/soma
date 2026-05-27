@@ -33,7 +33,7 @@ primitive adapters.
   Out of scope to specify; brought by the Principal or Provider.
 - **Provider** — operates a deployment of Workstation. In self-host mode the Principal is the
   Provider; the Provider mints and owns API keys.
-- **Workstation / Platform** — the conforming backend specified here. It MUST operate no agents.
+- **Workstation / Platform** — the conforming backend specified here. It MUST NOT operate agents.
 
 ## 3. Conformance
 

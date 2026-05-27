@@ -73,6 +73,20 @@ A debit is auto-refunded if the call short-circuits after charging (e.g. a 400) 
 new cross-cutting concern (audit, idempotency, caching) = one more middleware in `convex/gateway.ts`,
 not an edit to every handler.
 
+## Access control: per-key scopes
+
+A key's `scopes` are granular allow-patterns enforced by the `authz` middleware (before metering,
+so denied calls never charge):
+- `"*"` — everything
+- `"sandbox:*"` — every op on a primitive (opt-in blanket)
+- `"sandbox:exec"` — exactly one op (`<port>:<method>`)
+
+Empty scopes = full environment (an unscoped key reaches everything). Gateway ops (`balance`,
+`events`) are always allowed. Mint a scoped key:
+`bunx convex run accounts:mintKey '{"scopes":["store:listProducts","email:send"],"creditsCents":5000}'`
+Out-of-scope calls return `403 forbidden`. This is how a key becomes a *pre-configured environment*
+with a defined capability set.
+
 ## Compile-time guards
 - `serve` must name a real `Ports` method — assertion in `packages/contract/src/ports.ts`.
 - Each adapter `implements <Port>` — can't drift from the registry's input/output.
