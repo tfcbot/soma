@@ -18,8 +18,8 @@ function newAccountId(): string {
  * Zero-cost operations work on any key (even 0 balance); billable ops need credits.
  */
 export const mintKey = mutation({
-  args: { creditsCents: v.optional(v.number()), label: v.optional(v.string()) },
-  handler: async (ctx, { creditsCents, label }) => {
+  args: { creditsCents: v.optional(v.number()), label: v.optional(v.string()), scopes: v.optional(v.array(v.string())) },
+  handler: async (ctx, { creditsCents, label, scopes }) => {
     const apiKey = generateApiKey();
     const apiKeyHash = await sha256hex(apiKey);
     const now = Date.now();
@@ -30,7 +30,7 @@ export const mintKey = mutation({
       creditsCents: creditsCents ?? 0,
       spentCents: 0,
       label: label ?? "",
-      scopes: [],
+      scopes: scopes ?? [],
       createdAt: now,
       updatedAt: now,
     });

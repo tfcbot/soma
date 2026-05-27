@@ -10,6 +10,7 @@ export interface Account {
   creditsCents: number;
   spentCents: number;
   label: string;
+  scopes: string[];
 }
 
 export function json(body: unknown, status = 200): Response {
@@ -17,6 +18,10 @@ export function json(body: unknown, status = 200): Response {
     status,
     headers: { "Content-Type": "application/json" },
   });
+}
+
+export function forbidden(detail: string): Response {
+  return json({ error: "forbidden", message: detail }, 403);
 }
 
 export function getBearerToken(req: Request): string | null {
@@ -81,5 +86,6 @@ export async function resolveAccount(ctx: ActionCtx, req: Request): Promise<Acco
     creditsCents: acct.creditsCents,
     spentCents: acct.spentCents,
     label: acct.label ?? "",
+    scopes: acct.scopes ?? [],
   };
 }
