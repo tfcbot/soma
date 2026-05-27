@@ -30,4 +30,14 @@ export const gatewayHandlers: Record<
       accountId: account.accountId,
       sessionId: (input as Input<"confirmTopup">).sessionId,
     }),
+  // Public (no account) — self-serve signup + claim.
+  signup: async (ctx, _account, input) =>
+    ctx.runAction(internal.payments.createSignupCheckout, {
+      amountCents: (input as Input<"signup">).amountCents,
+      scopes: (input as Input<"signup">).scopes,
+    }),
+  claimSignup: async (ctx, _account, input) =>
+    ctx.runAction(internal.payments.claimSignup, {
+      claimToken: (input as Input<"claimSignup">).claimToken,
+    }),
 };

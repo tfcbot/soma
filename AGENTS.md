@@ -66,6 +66,8 @@ The Convex bundler can't resolve the workspace package name, so:
 
 Stripe is the shipped reference rail in `convex/payments.ts` (raw `stripe` SDK, node): `createTopupCheckout` (returns `{url, sessionId}`) behind the `POST /v1/topup` gateway op. Both fulfillment paths — `handleStripeWebhook` (wired at `/webhooks/stripe` in `http.ts`, gated on `STRIPE_WEBHOOK_SECRET`) and `confirmTopup` (the poll path behind `POST /v1/topup/confirm`) — funnel through the idempotent `topups:creditOnce` mutation, so a session credits at most once regardless of how many times either fires. `creditOnce` is directly runnable (`bunx convex run topups:creditOnce …`) to test fulfillment with no Stripe. Env-gated on `STRIPE_SECRET_KEY` (webhook also needs `STRIPE_WEBHOOK_SECRET`). Swap rails = replace this one file.
 
+**Self-serve signup (public).** `POST /v1/signup` and `POST /v1/signup/claim` are `auth: "public"` ops (no key required — the gateway's auth/meter/rate-limit middleware skip when there's no account). `createSignupCheckout` stores a `claimToken → sessionId` row (`convex/claims.ts`, `claims` table) and returns `{url, claimToken}`; `claimSignup` retrieves the paid session and calls `claims:fulfill`, which mints the account **once** (sets `accountId` on the claim row; re-claims return already_claimed). The plaintext key is returned a single time. `claims:storeClaim`/`fulfill` are directly runnable to test minting with no Stripe. `accounts:mintKey` remains operator-only; this is the paid path to a first key.
+
 ## Per-op policy & the middleware pipeline
 
 The gateway is a composed middleware pipeline (Middy-style: before/after/onError over a shared

@@ -103,6 +103,14 @@ Move from local mocks to a hosted, metered deployment. State what each step *req
        `bunx convex run topups:creditOnce '{"sessionId":"cs_test_1","accountId":"acc_…","amountCents":5000}'`
        (re-run with the same `sessionId` → no-op; proves idempotency).
      (Swap rails by replacing `convex/payments.ts`.)
+   - **Self-serve signup (let clients onboard themselves):** with `STRIPE_SECRET_KEY` set, the
+     public `POST /v1/signup {amountCents}` returns a Checkout `url` + `claimToken`; after paying,
+     the client polls `POST /v1/signup/claim {claimToken}` and the gateway mints their key with that
+     starting balance — once, shown a single time, no webhook needed. (`accounts:mintKey` stays
+     operator-only; this is the paid path to a first key.) Test minting with no Stripe:
+     `bunx convex run claims:storeClaim '{"claimToken":"claim_t1","sessionId":"cs_t1"}'` then
+     `bunx convex run claims:fulfill '{"claimToken":"claim_t1","creditsCents":20000}'`
+     (re-run → null, proves mint-once). CLI: `workstation signup` / `workstation claimSignup`.
    - Optional abuse cap: `WORKSTATION_RATE_LIMIT_PER_MIN`; 402 top-up link: `WORKSTATION_TOPUP_URL`.
 4. **Smoke test live & hand off:** call with a client key against the cloud URL; confirm metered
    debit, `402` when out of credits, `403` out of scope. Commit + push config to their repo.

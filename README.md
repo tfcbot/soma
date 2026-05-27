@@ -116,6 +116,14 @@ webhook** — so you can test the paid flow before wiring one. Swap rails by rep
 bunx convex run accounts:grantCredits '{"accountId":"acc_…","amountCents":5000}'
 ```
 
+**Getting the first key.** The operator mints keys directly (`bunx convex run accounts:mintKey …`)
+and hands them out. To let clients onboard themselves, the same Stripe rail powers a **public,
+key-less signup** (à la VidJutsu): `POST /v1/signup {amountCents}` returns a Checkout `url` + a
+`claimToken`; after paying, the buyer polls `POST /v1/signup/claim {claimToken}` and the gateway
+mints their key with that starting balance — **exactly once** per token, shown a single time. No
+webhook needed (the claim poll is the delivery), so it works the moment `STRIPE_SECRET_KEY` is set.
+`mintKey` stays operator-only; signup is the paid path to a first key.
+
 Optional abuse protection: set `WORKSTATION_RATE_LIMIT_PER_MIN` (per account, per operation) for
 `429 + Retry-After`. Metering and top-ups are off until you set per-op costs and the Stripe keys.
 

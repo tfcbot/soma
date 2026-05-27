@@ -80,3 +80,65 @@ export const handleStripeWebhook = internalAction({
     return { handled: false };
   },
 });
+
+// ── Self-serve signup ───────────────────────────────────────────────────────────
+// SIGNUP: create a Checkout session that buys `amountCents` of starting credits, plus an
+// unguessable claimToken the (unauthenticated) buyer polls to retrieve the key the payment minted.
+export const createSignupCheckout = internalAction({
+  args: { amountCents: v.number(), scopes: v.optional(v.array(v.string())) },
+  returns: v.object({ url: v.string(), claimToken: v.string() }),
+  handler: async (ctx, { amountCents, scopes }): Promise<{ url: string; claimToken: string }> => {
+    const stripe = getStripe();
+    const base = process.env.WORKSTATION_TOPUP_URL ?? "https://workstation.example/topup";
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price_data: {
+            currency: "usd",
+            product_data: { name: "Workstation key + credits" },
+            unit_amount: amountCents,
+          },
+          quantity: 1,
+        },
+      ],
+      metadata: { type: "signup", credits: String(amountCents), scopes: (scopes ?? []).join(",") },
+      success_url: `${base}?status=success&session={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${base}?status=cancel`,
+    });
+    const claimToken = `claim_${crypto.randomUUID().replace(/-/g, "")}`;
+    await ctx.runMutation(api.claims.storeClaim, { claimToken, sessionId: session.id });
+    return { url: session.url!, claimToken };
+  },
+});
+
+// CLAIM (poll, no webhook needed): once the session is paid, mint the key exactly once and return
+// it. The key is shown a single time over HTTPS; re-claiming a minted token returns already_claimed.
+export const claimSignup = internalAction({
+  args: { claimToken: v.string() },
+  returns: v.object({
+    status: v.string(),
+    apiKey: v.optional(v.string()),
+    accountId: v.optional(v.string()),
+    creditsCents: v.optional(v.number()),
+  }),
+  handler: async (
+    ctx,
+    { claimToken },
+  ): Promise<{ status: string; apiKey?: string; accountId?: string; creditsCents?: number }> => {
+    const claim = await ctx.runQuery(api.claims.resolve, { claimToken });
+    if (!claim) return { status: "invalid_token" };
+    if (claim.accountId) return { status: "already_claimed" };
+
+    const stripe = getStripe();
+    const session = await stripe.checkout.sessions.retrieve(claim.sessionId);
+    if (session.payment_status !== "paid") return { status: "pending" };
+
+    const credits = Number(session.metadata?.credits ?? 0);
+    const scopes = (session.metadata?.scopes ?? "").split(",").filter(Boolean);
+    const res = await ctx.runMutation(api.claims.fulfill, { claimToken, creditsCents: credits, scopes });
+    if (!res) return { status: "already_claimed" }; // lost a race to another claim
+    return { status: "completed", apiKey: res.apiKey, accountId: res.accountId, creditsCents: res.creditsCents };
+  },
+});

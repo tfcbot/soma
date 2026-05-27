@@ -242,7 +242,8 @@ on Convex:
 
 - Convex is the **composition root + host**, not a primitive. HTTP actions front the contract; the
   gateway builds every route from the typed operation registry. Per-key **accounts** gate each
-  call; the operator mints keys (e.g. `accounts:mintKey`).
+  call; the operator mints keys (e.g. `accounts:mintKey`), or clients self-serve via the public
+  `POST /v1/signup` → `POST /v1/signup/claim` flow (a paid Stripe Checkout mints a key once).
 - Vendor keys live in Convex environment variables, read server-side.
 - Vendor SDKs require Node, so primitive calls run in a Convex `"use node"` action; the
   isolate-runtime gateway delegates to them.
