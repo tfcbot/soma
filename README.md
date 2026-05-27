@@ -40,28 +40,28 @@ And the abstraction level-up ([THESIS.md](./THESIS.md)):
 The **gateway** is the durable spine the agent actually calls: per-key accounts, per-call credit
 metering (402), opt-in rate limits (429), and a generic event ledger (observability + webhooks).
 Task tracking is **not** a primitive — the agent brain owns it. The first build is a **single-node,
-personal** deployment (SPEC.md §12).
+personal** deployment (SPEC.md §11).
 
 ## Architecture (true hexagonal — ports & adapters)
 
 ```
-packages/contract/  the typed operation registry (Zod) — THE single source of truth
-core/        pure hexagon: the 5 primitive ports + domain (credits, ratelimit) + tests
-adapters/    one folder per primitive: a real adapter + a mock (mocks double as test spies)
-packages/contract/  the typed registry (Zod) + the port interfaces — THE single source of truth
-core/        pure hexagon: domain (credits, ratelimit) + tests
-adapters/    one folder per primitive: a real adapter + a mock, typed straight from the registry
+packages/contract/  the typed operation registry (Zod) + port interfaces — THE single source of truth
+core/        pure domain: credits + rate-limit math (+ their tests). No vendor code.
+modules/     one folder per capability — operations + a real adapter + a mock + server wiring
+             (phone, email, wallet, sandbox, filesystem; account = gateway-only ops)
 convex/      the host / gateway
-  gateway.ts   builds every HTTP route from the registry: auth → 429 → 402 → dispatch → event
-  invoke.ts    "use node" — ONE generic dispatcher; calls the right port adapter method
-  ports.ts     the port registry (real adapter if keys present, else mock)
-  gatewayHandlers.ts  the few DB-backed ops (balance, events)
-  accounts.ts / ratelimit.ts / events.ts / auth.ts / http.ts
+  gateway.ts          builds every route from the registry: auth → 403 → 429 → 402 → dispatch → event
+  invoke.ts           "use node" — ONE generic dispatcher; calls the right module adapter method
+  ports.ts            the port registry (real adapter if keys present, else mock)
+  gatewayHandlers.ts  the DB-backed ops (balance, events, top-up, signup/claim)
+  payments.ts         "use node" — Stripe reference rail (top-ups + self-serve signup)
+  accounts.ts / claims.ts / topups.ts / events.ts / ratelimit.ts / auth.ts / http.ts
 packages/{sdk,cli,mcp}/  all derived from packages/contract (no codegen — shared types)
 ```
 
-Key boundary: vendor SDKs need Node, so vendor calls run in `convex/node.ts`; the isolate-runtime
-HTTP layer delegates to them via `ctx.runAction`. Read-only enforcement and scheduling/memory are
+Key boundary: vendor SDKs need Node, so vendor calls run in a `"use node"` runtime — the generic
+dispatcher `convex/invoke.ts` (and the Stripe rail `convex/payments.ts`); the isolate-runtime HTTP
+layer delegates to them via `ctx.runAction`. Read-only enforcement and scheduling/memory are
 deliberately the *client agent's* job, not the workstation's (SPEC §9; THESIS).
 
 ## Clone & deploy your own
@@ -77,7 +77,7 @@ cd workstation
 bun install
 
 # 2. Run it locally on mocks — no vendor keys, no Convex login:
-bun test                                    # 29 unit tests, vendors mocked
+bun test                                    # 11 unit tests, vendors mocked
 CONVEX_AGENT_MODE=anonymous bunx convex dev  # local backend on mock adapters
 
 # 3. Make it yours: connect real vendors one at a time (GETTING_STARTED.md),
@@ -86,11 +86,11 @@ CONVEX_AGENT_MODE=anonymous bunx convex dev  # local backend on mock adapters
 
 What you customize:
 
-- **The five primitives** — each is a port with a real adapter + a mock (`adapters/<primitive>/`).
+- **The five primitives** — each is a capability folder with a real adapter + a mock (`modules/<primitive>/`).
   Swap a vendor by writing a new adapter against the same port; the contract never changes.
 - **The contract** — add or change operations in `packages/contract` (typed Zod registry); the
   server handler, SDK, CLI, MCP, and OpenAPI all derive from it (no codegen — shared types).
-- **The deployment** — single-node Convex (SPEC §12). Bring your own keys; you own the deployment.
+- **The deployment** — single-node Convex (SPEC §11). Bring your own keys; you own the deployment.
 
 The CLI installer (`packages/cli/install.sh`) pulls binaries from this repo's GitHub Releases.
 If you redistribute your own build, change `REPO=` in that script to your fork.
@@ -159,7 +159,7 @@ wiring vendor env vars, minting scoped keys with credits, and deploying — driv
 
 ```bash
 bun install
-bun test          # 29 unit tests, vendors mocked — no keys, no network
+bun test          # 11 unit tests, vendors mocked — no keys, no network
 
 # Run the backend headlessly with NO Convex login (anonymous local deployment):
 CONVEX_AGENT_MODE=anonymous bunx convex dev --once --typecheck enable
@@ -194,14 +194,17 @@ Connect real providers one at a time by setting their keys (see `.env.example` a
 
 ## Status
 
-Working scaffold; **not yet integration-tested against live vendors.**
+Working scaffold; **not yet integration-tested against live vendors or live Stripe.**
 
 - **Built:** hexagonal core; the five primitives + gateway; real vendor adapters (AgentMail, AgentPhone,
-  AgentCard, Freestyle, Archil-via-R2) coded against the actual SDK/REST contracts; Convex backend.
-- **Verified:** `tsc` typecheck clean; **29 unit tests pass** (domain, services, orchestration,
-  versioning, mock contracts); the Convex backend **codegens, typechecks, and deploys** to a local
-  anonymous deployment; the core gateway path (create / list / advance→409 / no-key→401) is
-  **smoke-tested live in mock mode**.
-- **Not yet verified:** live vendor round-trips (need real keys); an integration-test layer.
+  AgentCard, Freestyle, Archil-via-R2) coded against the actual SDK/REST contracts; Convex backend;
+  the Stripe reference rail (top-ups + public self-serve signup), behind one swappable seam.
+- **Verified:** `tsc` typecheck clean; **11 unit tests pass** (credits, rate-limit, mock contracts);
+  the Convex backend **codegens, typechecks, and deploys** to a local anonymous deployment; the
+  gateway is **smoke-tested live over HTTP in mock mode** (keyed call → 200, no-key on a metered op
+  → 401, public op keyless → 200, bad body → 400); payment/signup **fulfillment idempotency is
+  verified via the DB seam** (credit-once / mint-once) with no Stripe.
+- **Not yet verified:** live vendor round-trips and the live Stripe checkout round-trip (need real
+  keys — see the skill's Phase 3); an integration-test layer.
 - **Open questions** that gate live use: Freestyle VM pricing/limits, A2P 10DLC registration for
   SMS, AgentCard KYC/spend-controls, R2 bucket + CDN domain setup (THESIS §13).
