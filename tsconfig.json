@@ -3,8 +3,12 @@
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "lib": ["ESNext"],
-    "types": ["bun"],
+    "lib": [
+      "ESNext"
+    ],
+    "types": [
+      "bun"
+    ],
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
@@ -15,5 +19,10 @@
     "isolatedModules": true,
     "noEmit": true
   },
-  "include": ["core", "adapters", "mcp", "convex"]
+  "include": [
+    "core",
+    "modules",
+    "packages/contract/src",
+    "convex"
+  ]
 }
