@@ -6,7 +6,7 @@
 
 export interface GatewayConfig {
   baseUrl: string; // e.g. https://<deployment>.convex.site
-  apiKey: string; // GATEWAY_API_KEY
+  apiKey: string; // an account API key (see convex/accounts.ts)
 }
 
 function headers(cfg: GatewayConfig): Record<string, string> {

@@ -171,9 +171,14 @@ All paths are relative to the deployment base URL. Bodies are JSON.
 (§8).
 
 ### 7.1 Authentication
-Every request MUST carry `Authorization: Bearer <key>`. Requests without a valid key MUST
-receive `401`. (Single-node deployments MAY compare against one `GATEWAY_API_KEY`; multi-tenant
-deployments define their own key issuance — out of scope here.)
+Every request MUST carry `Authorization: Bearer <key>`. Each key resolves to an **account**;
+requests without a key that resolves MUST receive `401`. The Provider (the single-node operator)
+mints and distributes keys and owns their permissions. Each account has a **credit balance**;
+billable calls debit it and an empty balance MUST return `402` (§7.4). There is no single shared
+gateway key, and the protocol defines **no bypass/admin tier** — billing applies uniformly. An
+operator who wants free or privileged access does so by their own means (e.g. zero per-op cost, a
+large balance, or logic layered on the reserved per-account `scopes` field); that is out of scope
+for the protocol.
 
 ### 7.2 Access boundary
 Principal-facing access is limited to reads (`GET`) plus the two writes `POST /v1/todo`
@@ -185,6 +190,31 @@ convention; multi-tenant deployments MUST enforce it per-identity).
 Implementations SHOULD emit an event on each state change and MAY fan it out to the Principal's
 channels (e.g. webhook → email/SMS on `delivered`). Pull (`GET`) and push (event) are the only
 interaction patterns.
+
+### 7.4 Payment (metering)
+Each operation has a credit cost (0 = free; costs live in one table, `core/domain/pricing.ts`).
+The gateway MUST debit the cost atomically before performing the work and MUST refund it if a
+vendor-touching step fails. When the balance cannot cover the cost the gateway MUST return
+`402 Payment Required` with an RFC 7807 `application/problem+json` body carrying `required`,
+`balance`, and a `topupUrl`, and SHOULD include a `WWW-Authenticate: Payment` header so a
+payment-capable agent (e.g. MPP / x402) can settle inline. Metering applies to every account
+uniformly (no bypass tier). This is distinct from the budget envelope (§8), which caps the
+*agent's* vendor spend, not the *caller's* spend with the Provider.
+
+Credits are *added* to a balance through one server-side seam (`accounts:grantCredits`); the
+protocol defines the seam, **not** the purchase rail. How credits are bought — Stripe checkout,
+agent-native x402 / MPP settlement, a subscription-style monthly grant, or a manual top-up — is
+the Provider's choice and out of scope here. A conforming implementation MUST expose a way to
+add credits to an account and MUST NOT make that path reachable by the spending caller itself.
+
+### 7.5 Rate limiting (abuse protection)
+Independently of credits, a Provider MAY rate-limit calls to protect against abuse. The
+reference implementation ships a fixed-window framework (per `(account, operation)` per
+minute) that is **off by default** and enabled by the operator (`SOMA_RATE_LIMIT_PER_MIN`).
+When a caller exceeds the limit the gateway MUST return `429 Too Many Requests` with a
+`Retry-After` header. Rate limiting is checked **before** metering, so a throttled call does
+not consume credits. Limits and policy are the operator's to define; the protocol mandates
+only the `429 + Retry-After` shape when limiting is in effect.
 
 ## 8. Budget envelope
 
@@ -238,7 +268,7 @@ The included implementation is **single-node, personal** (one Principal, no tena
 hosted on Convex:
 
 - Convex is the **composition root + host**, not a primitive. HTTP actions front the contract;
-  a single `GATEWAY_API_KEY` gates them.
+  per-key **accounts** gate them (admin = unmetered, metered = credit-gated); the operator mints keys via `accounts:mintKey`.
 - Vendor keys live in Convex environment variables, read server-side.
 - Vendor SDKs require Node, so vendor-touching operations run in a Convex `"use node"` action;
   Todo CRUD runs in the isolate runtime and delegates to it.

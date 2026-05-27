@@ -9,24 +9,29 @@ type ReqBody<P extends keyof paths, M extends keyof paths[P]> = paths[P][M] exte
 type ResBody<P extends keyof paths, M extends keyof paths[P]> = paths[P][M] extends { responses: { 200: { content: { "application/json": infer R } } } } ? R : paths[P][M] extends { responses: { 201: { content: { "application/json": infer R } } } } ? R : unknown;
 
 export interface SomaMethods {
-  /** Intake a todo Auth required. */
+  /** Get credit balance Free. */
+  getBalance(): Promise<{ data?: ResBody<"/v1/balance", "get">; error?: unknown; response: Response }>;
+  /** Intake a todo Auth required. Free. */
   createTodo(body: ReqBody<"/v1/todo", "post">): Promise<{ data?: ResBody<"/v1/todo", "post">; error?: unknown; response: Response }>;
-  /** List todos Auth required. */
+  /** List todos Auth required. Free. */
   listTodos(): Promise<{ data?: ResBody<"/v1/todo", "get">; error?: unknown; response: Response }>;
-  /** Get a todo Auth required. */
+  /** Get a todo Auth required. Free. */
   getTodo(id: string): Promise<{ data?: ResBody<"/v1/todo/{id}", "get">; error?: unknown; response: Response }>;
-  /** Advance a todo's state Auth required. */
+  /** Advance a todo's state Auth required. Free. */
   advanceTodo(id: string, body: ReqBody<"/v1/todo/{id}/advance", "post">): Promise<{ data?: ResBody<"/v1/todo/{id}/advance", "post">; error?: unknown; response: Response }>;
-  /** Comment on a todo Auth required. */
+  /** Comment on a todo Auth required. Free. */
   commentTodo(id: string, body: ReqBody<"/v1/todo/{id}/comment", "post">): Promise<{ data?: ResBody<"/v1/todo/{id}/comment", "post">; error?: unknown; response: Response }>;
-  /** Deliver an artifact Auth required. */
+  /** Deliver an artifact Auth required. Costs 100 credits on metered keys (admin keys free). */
   deliverTodo(id: string, body: ReqBody<"/v1/todo/{id}/deliver", "post">): Promise<{ data?: ResBody<"/v1/todo/{id}/deliver", "post">; error?: unknown; response: Response }>;
-  /** Fund a prepaid card Auth required. */
+  /** Fund a prepaid card Auth required. Costs 50 credits on metered keys (admin keys free). */
   fundTodo(id: string, body: ReqBody<"/v1/todo/{id}/fund", "post">): Promise<{ data?: ResBody<"/v1/todo/{id}/fund", "post">; error?: unknown; response: Response }>;
 }
 
 export function bindMethods(client: Client): SomaMethods {
   return {
+    getBalance() {
+      return client.GET("/v1/balance" as any, {  } as any) as any;
+    },
     createTodo(body) {
       return client.POST("/v1/todo" as any, { body } as any) as any;
     },

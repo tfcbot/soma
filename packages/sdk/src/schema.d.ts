@@ -1,4 +1,24 @@
 export interface paths {
+    "/v1/balance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get credit balance
+         * @description Return the calling key's account role and credit balance.
+         */
+        get: operations["getBalance"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/todo": {
         parameters: {
             query?: never;
@@ -135,6 +155,14 @@ export interface components {
             /** @description Human-readable explanation. */
             message: string;
         };
+        /** @description A caller's credit balance. */
+        Balance: {
+            accountId: string;
+            /** Format: int32 */
+            creditsCents: number;
+            /** Format: int32 */
+            spentCents: number;
+        };
         BearerAuth: {
             /**
              * @description Http authentication
@@ -203,6 +231,39 @@ export interface components {
             spendLimitCents: number;
             last4?: string;
         };
+        /** @description RFC 7807 Problem Details body for HTTP 402, returned when a metered key lacks the credits for a call. Content-Type: application/problem+json. Paired with a `WWW-Authenticate: Payment` header so a payment-capable agent (MPP / x402) can settle inline. */
+        PaymentRequiredProblem: {
+            /**
+             * @description Problem type URI.
+             * @default https://paymentauth.org/problems/payment-required
+             */
+            type: string;
+            /**
+             * @description Short human-readable summary.
+             * @default Payment Required
+             */
+            title: string;
+            /**
+             * Format: int32
+             * @description HTTP status (always 402).
+             * @default 402
+             */
+            status: number;
+            /** @description Human-readable explanation. */
+            detail: string;
+            /**
+             * Format: int32
+             * @description Credits (cents) required for this call.
+             */
+            required: number;
+            /**
+             * Format: int32
+             * @description Caller's current balance (cents).
+             */
+            balance: number;
+            /** @description URL to top up credits. */
+            topupUrl: string;
+        };
         /** @description The Todo: the unit of work and the unit of observability (SPEC.md §10). */
         Todo: {
             /** @description Server-assigned id, e.g. td_…. */
@@ -258,6 +319,35 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    getBalance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Balance"];
+                };
+            };
+            /** @description 401 Unauthorized — missing or invalid 'Authorization: Bearer <key>'. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     listTodos: {
         parameters: {
             query?: never;
@@ -325,6 +415,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 402 Payment Required — metered key has insufficient credits. */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["PaymentRequiredProblem"];
                 };
             };
         };
@@ -490,6 +589,15 @@ export interface operations {
                     "application/json": components["schemas"]["ApiError"];
                 };
             };
+            /** @description 402 Payment Required — metered key has insufficient credits. */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["PaymentRequiredProblem"];
+                };
+            };
             /** @description 409 Conflict — illegal state transition or vendor operation failure. */
             409: {
                 headers: {
@@ -532,6 +640,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 402 Payment Required — metered key has insufficient credits. */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["PaymentRequiredProblem"];
                 };
             };
             /** @description 409 Conflict — illegal state transition or vendor operation failure. */

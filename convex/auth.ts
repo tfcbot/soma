@@ -1,5 +1,16 @@
-// API-key gate (SPEC §16). Pattern mirrors VidJutsu's convex/payments.ts getBearerToken,
-// simplified to a single GATEWAY_API_KEY compare — single node, no per-client keys.
+// Per-key account auth (SPEC §7.1). No single shared gateway key: every request carries a
+// bearer key that resolves to an account with a credit balance. The operator mints + owns keys
+// (see convex/accounts.ts mintKey). Soma defines no bypass/admin tier.
+import { api } from "./_generated/api";
+import type { ActionCtx } from "./_generated/server";
+import { sha256hex } from "./keys";
+
+export interface Account {
+  accountId: string;
+  creditsCents: number;
+  spentCents: number;
+  label: string;
+}
 
 export function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -14,20 +25,61 @@ export function getBearerToken(req: Request): string | null {
   return header.slice(7);
 }
 
-/** Returns an error Response if the request is unauthorized, otherwise null. */
-export function requireApiKey(req: Request): Response | null {
-  const expected = process.env.GATEWAY_API_KEY;
-  if (!expected) {
-    return json(
-      { error: "server_misconfigured", message: "GATEWAY_API_KEY is not set on the deployment." },
-      500,
-    );
+// RFC 7807 Problem Details for HTTP 402, plus a WWW-Authenticate: Payment header so a
+// payment-capable agent (MPP / x402) can resolve the charge inline.
+export function paymentRequired(
+  detail: string,
+  required: number,
+  balance: number,
+  topupUrl: string,
+): Response {
+  return new Response(
+    JSON.stringify({
+      type: "https://paymentauth.org/problems/payment-required",
+      title: "Payment Required",
+      status: 402,
+      detail,
+      required,
+      balance,
+      topupUrl,
+    }),
+    {
+      status: 402,
+      headers: {
+        "Content-Type": "application/problem+json",
+        "WWW-Authenticate": `Payment topupUrl="${topupUrl}"`,
+      },
+    },
+  );
+}
+
+// HTTP 429 for rate-limited callers, with a Retry-After header (abuse protection, SPEC §7.5).
+export function rateLimited(retryAfter: number, limit: number): Response {
+  return new Response(
+    JSON.stringify({
+      error: "rate_limit_exceeded",
+      message: `Rate limit of ${limit}/window exceeded. Retry after ${retryAfter}s.`,
+      retryAfter,
+    }),
+    { status: 429, headers: { "Content-Type": "application/json", "Retry-After": String(retryAfter) } },
+  );
+}
+
+/** Resolve the caller's account from the bearer key, or return a 401 Response. */
+export async function resolveAccount(ctx: ActionCtx, req: Request): Promise<Account | Response> {
+  const token = getBearerToken(req);
+  if (!token) {
+    return json({ error: "auth_required", message: "Missing 'Authorization: Bearer <key>'." }, 401);
   }
-  if (getBearerToken(req) !== expected) {
-    return json(
-      { error: "auth_required", message: "Missing or invalid 'Authorization: Bearer <key>'." },
-      401,
-    );
+  const apiKeyHash = await sha256hex(token);
+  const acct = await ctx.runQuery(api.accounts.getByApiKeyHash, { apiKeyHash });
+  if (!acct) {
+    return json({ error: "auth_required", message: "Invalid API key." }, 401);
   }
-  return null;
+  return {
+    accountId: acct.accountId,
+    creditsCents: acct.creditsCents,
+    spentCents: acct.spentCents,
+    label: acct.label ?? "",
+  };
 }

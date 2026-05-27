@@ -6,6 +6,7 @@ import "@typespec/rest";
 import "./models/common.tsp";
 import "./models/todo.tsp";
 import "./operations/todo.tsp";
+import "./operations/billing.tsp";
 
 using Http;
 using OpenAPI;
@@ -21,5 +22,6 @@ using Rest;
 @useAuth(BearerAuth)
 namespace Soma;
 
-// Single shared gateway key (SPEC.md §16): Authorization: Bearer <GATEWAY_API_KEY>.
+// Per-key account auth (SPEC.md §7.1): Authorization: Bearer <key>. Each key resolves to an
+// account (admin = unmetered, metered = credit-gated). No single shared gateway key.
 model BearerAuth is Http.BearerAuth;

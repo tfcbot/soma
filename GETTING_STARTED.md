@@ -26,15 +26,21 @@ npx convex dev --until-success
 This logs you in, provisions a dev deployment, applies the schema, and generates types in
 `convex/_generated/`. Leave it running.
 
-## 3. Set the gateway key (required)
+## 3. Mint an API key (required)
 
-Every endpoint is gated by one Bearer key. Anything without it gets a 401.
+There is no single gateway key. You (the operator) mint per-key accounts; each bearer key
+resolves to an account with a credit balance. Mint your first (prints the plaintext key once):
 
 ```bash
-npx convex env set GATEWAY_API_KEY "$(openssl rand -hex 24)"
+npx convex run accounts:mintKey '{"label":"owner","creditsCents":100000}'
 ```
 
-Read it back with `npx convex env get GATEWAY_API_KEY`.
+Billing applies uniformly — there is no built-in admin/free tier. Zero-cost operations work on
+any key; to give free access set per-op cost to 0 in `core/domain/pricing.ts` or mint a large
+balance. Per-op prices live in that one file. To add credits to a key, call the funding
+seam: `bunx convex run accounts:grantCredits '{"accountId":"acc_…","amountCents":5000}'`.
+Soma ships no payment processor — wire that to your own rail (manual, a monthly grant, or a
+payment webhook such as `@convex-dev/stripe`). Optional abuse protection: `SOMA_RATE_LIMIT_PER_MIN`.
 
 ## 4. Connect your providers (optional)
 
@@ -64,7 +70,7 @@ Convex prints your HTTP URL (looks like `https://<name>.convex.site`). Then:
 
 ```bash
 URL="https://<name>.convex.site"
-KEY="<your GATEWAY_API_KEY>"
+KEY="<the apiKey from accounts:mintKey>"
 
 # Create a todo (intake) — returns it in state "requested"
 curl -s -X POST "$URL/v1/todo" \
@@ -90,8 +96,7 @@ An illegal transition (e.g. `requested → delivered`) returns **409** — the s
 
 An agent (Claude) drives the primitives over the same endpoints. `mcp/server.ts` is a
 dependency-free client (`createTodo`, `listTodos`, `getTodo`, `commentTodo`); wrap it with
-`@modelcontextprotocol/sdk` to expose each as an MCP tool, configured with your `baseUrl` +
-`GATEWAY_API_KEY`.
+`@modelcontextprotocol/sdk` to expose each as an MCP tool, configured with your `baseUrl` + an account API key.
 
 ## Tests & typecheck
 

@@ -80,7 +80,7 @@ bun test                                    # 29 unit tests, vendors mocked
 CONVEX_AGENT_MODE=anonymous bunx convex dev  # local backend on mock adapters
 
 # 3. Make it yours: connect real vendors one at a time (GETTING_STARTED.md),
-#    set GATEWAY_API_KEY, then deploy your own Convex backend.
+#    mint a key (bunx convex run accounts:mintKey), then deploy your own Convex backend.
 ```
 
 What you customize:
@@ -94,6 +94,25 @@ What you customize:
 The CLI installer (`packages/cli/install.sh`) pulls binaries from this repo's GitHub Releases.
 If you redistribute your own build, change `REPO=` in that script to your fork.
 
+## Charging for usage (optional)
+
+Soma is a framework: it ships the *metering*, not a payment processor. Each endpoint has a
+credit cost in `core/domain/pricing.ts` (0 = free). A bearer key is an account with a credit
+balance; billable calls debit it, and an empty balance returns `402` with a `topupUrl` and a
+`WWW-Authenticate: Payment` header (agent-native — an x402/MPP agent can settle inline).
+
+You bring the rail. To add credits, call the funding seam:
+
+```bash
+bunx convex run accounts:grantCredits '{"accountId":"acc_…","amountCents":5000}'
+```
+
+Wire that to whatever you like — a manual top-up, a scheduled monthly grant, or a payment
+webhook. For a full Stripe lifecycle, drop in [`@convex-dev/stripe`](https://www.convex.dev/components/stripe)
+and call `grantCredits` from its `checkout.session.completed` handler; point `SOMA_TOPUP_URL`
+at your checkout. Optional abuse protection: set `SOMA_RATE_LIMIT_PER_MIN` (per account, per
+operation) to get `429 + Retry-After`. None of this is on by default.
+
 ## Quickstart
 
 ```bash
@@ -103,11 +122,12 @@ bun test          # 29 unit tests, vendors mocked — no keys, no network
 # Run the backend headlessly with NO Convex login (anonymous local deployment):
 CONVEX_AGENT_MODE=anonymous bunx convex dev --once --typecheck enable
 
-# It runs end-to-end on MOCK adapters with zero vendor keys. Set the gateway key and try it:
+# It runs end-to-end on MOCK adapters with zero vendor keys. Mint an admin key and try it:
 CONVEX_AGENT_MODE=anonymous bunx convex dev            # keep the local backend running
-CONVEX_AGENT_MODE=anonymous bunx convex env set GATEWAY_API_KEY <key>
+# Mint a key (operator-owned). Prints the plaintext key once; 0-cost ops work on any balance:
+KEY=$(CONVEX_AGENT_MODE=anonymous bunx convex run accounts:mintKey '{"label":"owner"}' | jq -r .apiKey)
 curl -s -X POST http://127.0.0.1:3211/v1/todo \
-  -H "Authorization: Bearer <key>" -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
   -d '{"title":"smoke","brief":"verify it runs"}'
 ```
 
