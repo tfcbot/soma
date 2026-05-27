@@ -25,4 +25,9 @@ export const gatewayHandlers: Record<
       accountId: account.accountId,
       amountCents: (input as Input<"createTopup">).amountCents,
     }),
+  confirmTopup: async (ctx, account, input) =>
+    ctx.runAction(internal.payments.confirmTopup, {
+      accountId: account.accountId,
+      sessionId: (input as Input<"confirmTopup">).sessionId,
+    }),
 };

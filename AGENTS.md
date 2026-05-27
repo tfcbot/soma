@@ -64,7 +64,7 @@ The Convex bundler can't resolve the workspace package name, so:
 
 ## Payments (reference rail)
 
-Stripe is the shipped reference rail in `convex/payments.ts` (raw `stripe` SDK, node): a `createTopupCheckout` action behind the `POST /v1/topup` gateway op, and a signature-verified `handleStripeWebhook` (wired at `/webhooks/stripe` in `http.ts`) that calls `accounts:grantCredits` on payment. Env-gated on `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET`. Swap rails = replace this one file.
+Stripe is the shipped reference rail in `convex/payments.ts` (raw `stripe` SDK, node): `createTopupCheckout` (returns `{url, sessionId}`) behind the `POST /v1/topup` gateway op. Both fulfillment paths — `handleStripeWebhook` (wired at `/webhooks/stripe` in `http.ts`, gated on `STRIPE_WEBHOOK_SECRET`) and `confirmTopup` (the poll path behind `POST /v1/topup/confirm`) — funnel through the idempotent `topups:creditOnce` mutation, so a session credits at most once regardless of how many times either fires. `creditOnce` is directly runnable (`bunx convex run topups:creditOnce …`) to test fulfillment with no Stripe. Env-gated on `STRIPE_SECRET_KEY` (webhook also needs `STRIPE_WEBHOOK_SECRET`). Swap rails = replace this one file.
 
 ## Per-op policy & the middleware pipeline
 

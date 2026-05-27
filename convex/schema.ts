@@ -24,6 +24,15 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_key", ["key"]),
 
+  // Fulfilled Stripe Checkout sessions — makes crediting idempotent (webhook AND poll can both
+  // fire; a session is credited at most once).
+  topups: defineTable({
+    sessionId: v.string(),
+    accountId: v.string(),
+    amountCents: v.number(),
+    ts: v.number(),
+  }).index("by_sessionId", ["sessionId"]),
+
   // Generic usage/observability ledger — one row per gated primitive call.
   events: defineTable({
     accountId: v.string(),

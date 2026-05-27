@@ -86,9 +86,22 @@ Move from local mocks to a hosted, metered deployment. State what each step *req
    ```
    - Scopes: `"*"`, `"<port>:*"`, or `"<port>:<method>"`; empty = full access; out-of-scope → 403.
    - Top up later: `accounts:grantCredits '{"accountId":"acc_…","amountCents":N}'`. Exhausted → 402.
-   - **Self-serve top-ups (Stripe, shipped):** set `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET`,
-     add a Stripe webhook to `https://<deploy>.convex.site/webhooks/stripe` → clients call
-     `POST /v1/topup {amountCents}` to get a Checkout URL; payment credits them via grantCredits.
+   - **Self-serve top-ups (Stripe, shipped):** set `STRIPE_SECRET_KEY` → clients call
+     `POST /v1/topup {amountCents}` for a Checkout URL; paid sessions credit via grantCredits.
+     Crediting is **idempotent** (a session credits at most once), funneled through
+     `topups:creditOnce`. Two ways to fulfill:
+     - *Webhook (production):* set `STRIPE_WEBHOOK_SECRET` and point a Stripe webhook at
+       `https://<deploy>.convex.site/webhooks/stripe`. Recommended: install the
+       [Stripe CLI](https://docs.stripe.com/stripe-cli) and run
+       `stripe listen --forward-to https://<deploy>.convex.site/webhooks/stripe` — it prints a
+       `whsec_…` to use as `STRIPE_WEBHOOK_SECRET`; trigger a test with
+       `stripe trigger checkout.session.completed`.
+     - *Poll (no webhook needed):* clients call `POST /v1/topup/confirm {sessionId}` after paying;
+       if the session is paid it credits immediately. Lets you test the full paid flow before any
+       webhook is configured.
+     - *Test fulfillment with no Stripe at all:* call the seam directly —
+       `bunx convex run topups:creditOnce '{"sessionId":"cs_test_1","accountId":"acc_…","amountCents":5000}'`
+       (re-run with the same `sessionId` → no-op; proves idempotency).
      (Swap rails by replacing `convex/payments.ts`.)
    - Optional abuse cap: `WORKSTATION_RATE_LIMIT_PER_MIN`; 402 top-up link: `WORKSTATION_TOPUP_URL`.
 4. **Smoke test live & hand off:** call with a client key against the cloud URL; confirm metered

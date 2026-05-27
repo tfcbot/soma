@@ -17,4 +17,9 @@ export const ops = {
     input: z.object({ amountCents: z.number() }),
     output: z.object({ url: z.string() }), costCents: 0,
     summary: "Create a Stripe checkout to top up credits", serve: { gateway: true } }),
+  // Poll a Checkout session and credit it (idempotent) — fulfillment without a configured webhook.
+  confirmTopup: op({ method: "POST", path: "/v1/topup/confirm", inputFrom: "body",
+    input: z.object({ sessionId: z.string() }),
+    output: z.object({ status: z.string(), creditsCents: z.number().optional() }), costCents: 0,
+    summary: "Confirm/poll a top-up Checkout session", serve: { gateway: true } }),
 };

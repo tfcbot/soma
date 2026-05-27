@@ -102,10 +102,14 @@ credit cost in the contract registry `packages/contract/src/operations.ts` (0 = 
 balance; billable calls debit it, and an empty balance returns `402` with a `topupUrl` and a
 `WWW-Authenticate: Payment` header (agent-native — an x402/MPP agent can settle inline).
 
-**Stripe is the shipped reference rail.** Set `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` and the
-gateway exposes `POST /v1/topup` (a Stripe Checkout session — the URL a `402` points at) plus a
-signature-verified `POST /webhooks/stripe` that credits the account on payment. It's wired behind
-one vendor-neutral seam, so you can swap rails by replacing `convex/payments.ts`:
+**Stripe is the shipped reference rail.** Set `STRIPE_SECRET_KEY` and the gateway exposes
+`POST /v1/topup` (a Stripe Checkout session — the URL a `402` points at). Paid sessions are
+credited **idempotently** (at most once per session) through one vendor-neutral seam, two ways:
+a signature-verified `POST /webhooks/stripe` (set `STRIPE_WEBHOOK_SECRET`; for local dev,
+`stripe listen --forward-to <deploy>/webhooks/stripe` via the [Stripe CLI](https://docs.stripe.com/stripe-cli)
+prints the `whsec_`), or a poll endpoint `POST /v1/topup/confirm {sessionId}` that needs **no
+webhook** — so you can test the paid flow before wiring one. Swap rails by replacing
+`convex/payments.ts`:
 
 ```bash
 # the seam every rail calls (also a manual top-up / scheduled grant):
