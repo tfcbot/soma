@@ -6,7 +6,9 @@
   "bin": {
     "soma-mcp": "./dist/index.mjs"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "bun build src/index.ts --outfile dist/index.mjs --target node",
     "dev": "bun run src/index.ts"
@@ -15,5 +17,15 @@
     "@modelcontextprotocol/sdk": "^1.0.0",
     "soma": "workspace:*",
     "zod": "^3.23.8"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tfcbot/soma.git",
+    "directory": "packages/mcp"
+  },
+  "homepage": "https://github.com/tfcbot/soma#readme",
+  "bugs": {
+    "url": "https://github.com/tfcbot/soma/issues"
   }
 }

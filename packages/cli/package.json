@@ -6,7 +6,10 @@
   "bin": {
     "soma": "./dist/index.mjs"
   },
-  "files": ["dist", "install.sh"],
+  "files": [
+    "dist",
+    "install.sh"
+  ],
   "scripts": {
     "build": "bun build src/index.ts --outfile dist/index.mjs --target node",
     "build:binary": "bun run build:binary:darwin-arm64 && bun run build:binary:darwin-x64 && bun run build:binary:linux-x64 && bun run build:binary:linux-arm64",
@@ -18,5 +21,15 @@
   },
   "dependencies": {
     "citty": "^0.1.6"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tfcbot/soma.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/tfcbot/soma#readme",
+  "bugs": {
+    "url": "https://github.com/tfcbot/soma/issues"
   }
 }
