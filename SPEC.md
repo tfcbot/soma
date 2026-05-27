@@ -13,7 +13,7 @@ RFC 2119.
 
 ## 1. Abstract
 
-Workstation ("the body") is a headless backend that exposes a
+Workstation is a headless backend that exposes a
 fixed set of **primitives** — phone, email, wallet, sandbox (compute), and filesystem (storage) —
 **directly** through one **gateway**: an API-key-gated, metered, observable HTTP contract. An
 external **Agent** (the brain, brought by the caller) calls the primitives to accomplish work and
@@ -22,7 +22,7 @@ conforming implementation lets any agent reach people, pay for tooling, run code
 deliverables — a complete loop — without the caller's own credentials, and meters each call.
 
 Workstation is **not** a task manager: tracking and sequencing work is the Agent's job, not the
-body's. The body's durable contribution is the **gateway** — identity (per-key accounts), metering
+workstation's. The workstation's durable contribution is the **gateway** — identity (per-key accounts), metering
 (credits), abuse protection (rate limits), and observability (an event ledger) — over swappable
 primitive adapters.
 
@@ -33,7 +33,7 @@ primitive adapters.
   Out of scope to specify; brought by the Principal or Provider.
 - **Provider** — operates a deployment of Workstation. In self-host mode the Principal is the
   Provider; the Provider mints and owns API keys.
-- **Platform / body** — the conforming backend specified here. It MUST operate no agents.
+- **Workstation / Platform** — the conforming backend specified here. It MUST operate no agents.
 
 ## 3. Conformance
 
@@ -130,7 +130,7 @@ account-facing `balance` and `events` operations (§7).
 This registry is the **single source of truth**: server routing, client SDKs, and any published
 OpenAPI description derive from it. Adding or changing operations is §10.
 
-The body models no work-state and no task lifecycle: sequencing, retries, approval, and
+The workstation models no work-state and no task lifecycle: sequencing, retries, approval, and
 "done"-ness are the Agent's concern.
 
 ## 7. Gateway HTTP API
@@ -168,7 +168,7 @@ for the protocol.
 ### 7.2 Observability and events
 The gateway MUST record an event for every gated call — at least `{ accountId, op, costCents,
 status, ts }` — and expose an account's own events via `GET /v1/events`. This event ledger is the
-body's unit of observability. Implementations MAY fan events
+workstation's unit of observability. Implementations MAY fan events
 out to a Provider-configured webhook. Pull (`GET`) and push (event/webhook) are the only
 interaction patterns.
 
@@ -206,7 +206,7 @@ metering, so a throttled call does not consume credits.
 - **Sensitive fields.** `pan`/`cvv` (§5.3) MUST NOT be logged.
 - **Self-crediting.** The credit-grant seam (§7.3) MUST NOT be reachable by the spending caller.
 - **Scheduling, memory, and task tracking are out of scope.** They belong to the Agent (the
-  brain), not the body; an implementation MUST NOT need them to conform.
+  brain), not the workstation; an implementation MUST NOT need them to conform.
 
 ## 9. Extensibility
 
@@ -252,7 +252,7 @@ via `CONVEX_AGENT_MODE=anonymous`).
 
 ## Glossary
 
-- **Workstation / body** — the conforming backend; the primitives + gateway, headless.
+- **Workstation** — the conforming backend; the primitives + gateway, headless.
 - **Agent / brain** — the external caller; bring your own. Owns task tracking.
 - **Principal** — the customer.
 - **Provider** — operator of a deployment (the Principal, when self-hosting); mints API keys.
