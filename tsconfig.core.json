@@ -1,5 +1,9 @@
 {
   "extends": "./tsconfig.json",
   "comment": "Typechecks the pure hexagon (core + adapters + mcp) without Convex codegen, which only exists after `convex dev`.",
-  "include": ["core", "adapters", "mcp"]
+  "include": [
+    "core",
+    "modules",
+    "packages/contract/src"
+  ]
 }

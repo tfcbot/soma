@@ -2,87 +2,80 @@
 
 Soma is a **headless contract for agents that do work**: five primitives (phone, email, wallet,
 computer, storage) exposed through one metered gateway. The contract is a **typed Zod registry**
-(`packages/contract/src/operations.ts`) — the single source of truth. The server router, SDK, CLI,
-MCP tools, and OpenAPI spec all derive from it. There is **no codegen**: in this monorepo, shared
-types give end-to-end safety.
+assembled from **self-contained capability modules**. The server router, SDK, CLI, MCP tools, and
+OpenAPI spec all derive from it. No codegen — in this monorepo, shared types give end-to-end safety.
 
 ## Where things live
 ```
-packages/contract/  the registry (operations.ts) + port interfaces (ports.ts)  ← source of truth
-adapters/<port>/    one real adapter + one mock per primitive (typed from the contract)
+modules/<name>/        a self-contained capability — EVERYTHING for it lives here:
+  operations.ts          its Zod schemas + ops (registry slice) + its port interface
+  <vendor>.ts            the real adapter (implements the port interface)
+  mock.ts                the mock adapter
+  server.ts              buildX(env): Port — real adapter if env keys present, else mock
+packages/contract/src/ op.ts (the op() helper), schemas.ts (shared Base64), and the AGGREGATORS:
+  operations.ts          merges every module's ops → `operations` (the registry)
+  ports.ts               assembles the `Ports` bag + a compile-time serve→ports guard
 convex/  gateway.ts         builds every route from the registry (auth→429→402→dispatch→event)
          invoke.ts          ONE generic node action — calls the right port adapter method
-         ports.ts           the port registry: real adapter if env keys present, else mock
+         ports.ts           buildPorts(env) — aggregates each module's server.ts factory
          gatewayHandlers.ts the few DB-backed ops (balance, events)
          accounts.ts / ratelimit.ts / events.ts / auth.ts / http.ts / schema.ts
-packages/{sdk,cli,mcp}/     derived from the contract (no codegen)
+packages/{sdk,cli,mcp}/  derived from the contract (no codegen)
 ```
 
-## Recipe: add a capability `/v1/xyz/...` (vendor-backed)
-You touch **4 places**; you never edit `gateway.ts`, `invoke.ts`, or `http.ts`.
+## Recipe: add a capability `xyz` (vendor-backed)
+Everything for the capability goes in **one folder**; then 3 one-line registrations. You never
+edit `gateway.ts`, `invoke.ts`, or `http.ts`.
 
-1. **Registry** — add the op(s) to `packages/contract/src/operations.ts`:
+1. **Create `modules/xyz/operations.ts`** — schemas + ops + the port interface, self-contained:
    ```ts
-   xyzDo: op({
-     method: "POST", path: "/v1/xyz/do", inputFrom: "body",   // GET ⇒ inputFrom: "query"
-     input: z.object({ thing: z.string() }),
-     output: z.object({ id: z.string() }),
-     costCents: 5, summary: "Do the xyz thing",
-     serve: { port: "xyz", method: "do" },                    // a typo here is a tsc error
-   }),
+   import { z } from "zod";
+   import { op } from "../../packages/contract/src/op";
+   const doIn = z.object({ thing: z.string() });
+   const doOut = z.object({ id: z.string() });
+   export const ops = {
+     xyzDo: op({ method: "POST", path: "/v1/xyz/do", inputFrom: "body",
+       input: doIn, output: doOut, costCents: 5, summary: "Do the xyz thing",
+       serve: { port: "xyz", method: "do" } }),   // typo here ⇒ tsc error (guard in ports.ts)
+   };
+   export interface XyzPort { do(input: z.infer<typeof doIn>): Promise<z.infer<typeof doOut>>; }
    ```
-2. **Port interface** — in `packages/contract/src/ports.ts`, add the interface and put it in `Ports`:
-   ```ts
-   export interface XyzPort { do(input: Input<"xyzDo">): Promise<Output<"xyzDo">>; }
-   export interface Ports { /* … */ xyz: XyzPort; }
-   ```
-3. **Adapter(s)** — `adapters/xyz/xyzvendor.ts` (+ `adapters/xyz/mock.ts`) implementing `XyzPort`:
-   ```ts
-   import type { XyzPort, Input, Output } from "../../packages/contract/src/index";
-   export class XyzVendor implements XyzPort {
-     constructor(private apiKey: string) {}
-     async do(input: Input<"xyzDo">): Promise<Output<"xyzDo">> { /* call the vendor */ }
-   }
-   ```
-   The `implements XyzPort` makes a signature mismatch a compile error.
-4. **Register the port** — one line in `convex/ports.ts` `buildPorts`:
-   ```ts
-   xyz: env.XYZ_API_KEY ? new XyzVendor(env.XYZ_API_KEY) : new MockXyz(),
-   ```
+2. **`modules/xyz/xyzvendor.ts` + `modules/xyz/mock.ts`** — `implements XyzPort` (mismatch ⇒ tsc error).
+3. **`modules/xyz/server.ts`** — `export function buildXyz(env) { return env.XYZ_API_KEY ? new XyzVendor(...) : new MockXyz(); }`.
+4. **Register (3 one-liners):**
+   - `packages/contract/src/operations.ts`: `import { ops as xyz } from "../../../modules/xyz/operations"` + spread `...xyz`.
+   - `packages/contract/src/ports.ts`: import `XyzPort` + add `xyz: XyzPort` to `Ports`.
+   - `convex/ports.ts`: `import { buildXyz } from "../modules/xyz/server"` + `xyz: buildXyz(env)`.
 5. If the real adapter needs a vendor SDK: add it to `convex.json` `node.externalPackages` + `bun add`.
 6. `bunx convex dev` to deploy.
 
-That's it. The route (with auth + metering + events), `soma.xyzDo(...)` in the SDK, the `xyzDo`
-MCP tool, the `xyzDo` CLI command, and the OpenAPI entry all appear automatically.
+The route (auth + metering + events), `soma.xyzDo(...)`, the MCP tool, the CLI command, and the
+OpenAPI entry all appear automatically.
 
-**Variant — a capability with no vendor (reads the DB, like `balance`/`events`):** skip steps 2–5;
-set `serve: { gateway: true }` and add one handler to `convex/gatewayHandlers.ts`.
+**No-vendor variant (DB-backed, like `balance`/`events`):** put the op in `modules/account/operations.ts`
+with `serve: { gateway: true }` and add one handler to `convex/gatewayHandlers.ts`. No port/adapter.
 
-## Import rule (read this once)
-Importing the contract differs by where the code runs — the Convex bundler can't resolve the
-workspace package name, so:
+## Import rule (read once)
+The Convex bundler can't resolve the workspace package name, so:
 - **Published packages** (`packages/sdk|cli|mcp`): `import … from "@soma/contract"`.
-- **The Convex host** (`convex/*`): `import … from "../packages/contract/src/index"`.
-- **Adapters** (`adapters/<port>/*`): `import … from "../../packages/contract/src/index"`.
+- **Convex host** (`convex/*`): `import … from "../packages/contract/src/index"`; modules via `../modules/...`.
+- **Inside a module**: import `op`/`Base64` from `../../packages/contract/src/...`; adapters import the
+  port interface from `./operations` (the same folder).
 
-## Two guards that catch mistakes at compile time
-- Each op's `serve` must name a real `Ports` method — enforced by an assertion in
-  `packages/contract/src/ports.ts` (`tsc` names the offending op if you typo `port`/`method`).
-- An adapter must `implements <Port>` — so it can't drift from the registry's input/output.
+## Compile-time guards
+- `serve` must name a real `Ports` method — assertion in `packages/contract/src/ports.ts`.
+- Each adapter `implements <Port>` — can't drift from the registry's input/output.
 
 ## Verify
 ```bash
-bun run typecheck                          # core hexagon + contract
-bun test                                   # domain (credits, ratelimit) + mock adapters
-CONVEX_AGENT_MODE=anonymous bunx convex dev --once --typecheck enable   # full convex codegen+typecheck
-bun scripts/gen-openapi.ts                 # re-emit spec/openapi/spec.json from the registry
+bun run typecheck                                                        # core + modules + contract
+bun test                                                                 # domain + mock adapters
+CONVEX_AGENT_MODE=anonymous bunx convex dev --once --typecheck enable     # full convex codegen+typecheck
+bun scripts/gen-openapi.ts                                               # re-emit spec/openapi/spec.json
 (cd packages/sdk && bun run build) && (cd packages/cli && bun run build) && (cd packages/mcp && bun run build)
 ```
-Live smoke: run `convex dev`, mint a key (`bunx convex run accounts:mintKey '{"creditsCents":1000}'`),
-then call your endpoint with `Authorization: Bearer <key>`.
 
 ## Do NOT
 - Edit `gateway.ts` / `invoke.ts` / `http.ts` to add an op — they're generic.
-- Add a per-op node action or handler for a vendor op — the generic dispatcher covers it.
 - Log `pan`/`cvv` from the wallet (sensitive).
 - Reach the credit-grant seam (`accounts:grantCredits`) from a caller-facing route.
