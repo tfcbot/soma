@@ -1,10 +1,10 @@
 # Scenarios — the idea made concrete
 
-**Soma is a headless contract for agents that do work.** Companion to [SPEC.md](./SPEC.md): the
+**Workstation is a headless contract for agents that do work.** Companion to [SPEC.md](./SPEC.md): the
 spec is abstract on purpose, so this doc plays out a real service end to end.
 
 One principle runs through every scenario: **the body gives the agent primitives; the agent does the
-work.** Soma authenticates the key, meters each call, and records what happened — phone, email,
+work.** Workstation authenticates the key, meters each call, and records what happened — phone, email,
 wallet, compute, storage, behind one gateway. Sequencing, retries, and "is this done" live in the
 agent (the brain), never in the body.
 
@@ -18,7 +18,7 @@ agent (the brain), never in the body.
   for everything. She does not want to own ad production: she briefs, and she receives.
 - **Lumen** — a new-style creative agency. It sells neither dashboards nor hourly design. It
   provisions an assistant per client and owns the agent (and its QA) that drives it.
-- **Soma** — the headless platform: five primitives behind one metered gateway. It operates no
+- **Workstation** — the headless platform: five primitives behind one metered gateway. It operates no
   agents; Lumen runs on top of it.
 
 Maya owns no plumbing — no VPS, no API keys, no vendor accounts, no card or phone or inbox plugged
@@ -32,7 +32,7 @@ gateway.
 | Primitive | Provisioned as |
 |---|---|
 | **Phone** | `+1 (415) 555-0123` — Maya texts this to brief and to hear status |
-| **Email** | `studio@maya-brand.soma.run` (client-facing) + a hidden `ops@…` inbox for signups/receipts |
+| **Email** | `studio@maya-brand.workstation.run` (client-facing) + a hidden `ops@…` inbox for signups/receipts |
 | **Wallet** | a prepaid virtual card; its `spendLimitCents` is the hard ceiling |
 | **Computer** | a Linux sandbox with the production toolchain (ffmpeg + the gen pipeline) |
 | **Storage** | an object store for the heavy MP4s, with a public CDN for delivery |

@@ -36,8 +36,8 @@ for (const [opId, op] of Object.entries(operations)) {
 
 const doc = new OpenApiGeneratorV3(registry.definitions).generateDocument({
   openapi: "3.0.3",
-  info: { title: "Soma", version: "0.1.0" },
-  servers: [{ url: "https://api.soma.example" }],
+  info: { title: "Workstation", version: "0.1.0" },
+  servers: [{ url: "https://api.workstation.example" }],
 });
 
 const out = resolve(import.meta.dir, "../spec/openapi/spec.json");

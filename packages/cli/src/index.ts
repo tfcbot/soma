@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { defineCommand, runMain } from "citty";
-import { operations } from "@soma/contract";
-import { createClient } from "soma";
+import { operations } from "@workstation/contract";
+import { createClient } from "workstation";
 import { VERSION } from "./version";
 import { setApiKey, setApiUrl, getConfig, CONFIG_FILE } from "./client";
 
@@ -13,9 +13,9 @@ for (const [opId, op] of Object.entries(operations)) {
     meta: { name: opId, description: `${op.summary} (${op.method} ${op.path})` },
     args: { input: { type: "string", description: "JSON input, e.g. '{\"to\":\"+1…\",\"body\":\"hi\"}'" } },
     async run({ args }) {
-      const soma = createClient() as Record<string, (i: unknown) => Promise<unknown>>;
+      const workstation = createClient() as Record<string, (i: unknown) => Promise<unknown>>;
       const input = args.input ? JSON.parse(args.input) : {};
-      const out = await soma[opId](input);
+      const out = await workstation[opId](input);
       console.log(JSON.stringify(out, null, 2));
     },
   });
@@ -43,7 +43,7 @@ const version = defineCommand({
 
 runMain(
   defineCommand({
-    meta: { name: "soma", version: VERSION, description: "Soma — a programmable body for an agent's brain." },
+    meta: { name: "workstation", version: VERSION, description: "Workstation — a programmable body for an agent's brain." },
     subCommands: { auth, version, ...primitiveCommands },
   }),
 );

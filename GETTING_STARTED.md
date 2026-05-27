@@ -39,8 +39,8 @@ Billing applies uniformly — there is no built-in admin/free tier. Zero-cost op
 any key; to give free access set per-op cost to 0 in `core/domain/pricing.ts` or mint a large
 balance. Per-op prices live in that one file. To add credits to a key, call the funding
 seam: `bunx convex run accounts:grantCredits '{"accountId":"acc_…","amountCents":5000}'`.
-Soma ships no payment processor — wire that to your own rail (manual, a monthly grant, or a
-payment webhook such as `@convex-dev/stripe`). Optional abuse protection: `SOMA_RATE_LIMIT_PER_MIN`.
+Workstation ships no payment processor — wire that to your own rail (manual, a monthly grant, or a
+payment webhook such as `@convex-dev/stripe`). Optional abuse protection: `WORKSTATION_RATE_LIMIT_PER_MIN`.
 
 ## 4. Connect your providers (optional)
 
@@ -96,7 +96,7 @@ A metered key with too few credits gets **402** (with a `topupUrl`); an over-rat
 
 ## 6. Point your agent at it
 
-An agent (Claude) drives the primitives over these endpoints. The `soma` SDK (`packages/sdk`) gives
+An agent (Claude) drives the primitives over these endpoints. The `workstation` SDK (`packages/sdk`) gives
 typed methods; `packages/mcp` exposes one MCP tool per primitive; `packages/cli` one command each —
 all derived from `packages/contract`. Point any of them at your `baseUrl` + an account API key.
 

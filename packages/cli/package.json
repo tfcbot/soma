@@ -1,10 +1,10 @@
 {
-  "name": "soma-cli",
+  "name": "workstation-cli",
   "version": "0.1.0",
-  "description": "Soma CLI — drive the primitives from the terminal.",
+  "description": "Workstation CLI — drive the primitives from the terminal.",
   "type": "module",
   "bin": {
-    "soma": "./dist/index.mjs"
+    "workstation": "./dist/index.mjs"
   },
   "files": [
     "dist",
@@ -13,25 +13,25 @@
   "scripts": {
     "build": "bun build src/index.ts --outfile dist/index.mjs --target node",
     "build:binary": "bun run build:binary:darwin-arm64 && bun run build:binary:darwin-x64 && bun run build:binary:linux-x64 && bun run build:binary:linux-arm64",
-    "build:binary:darwin-arm64": "bun build src/index.ts --compile --target=bun-darwin-arm64 --outfile dist/soma-darwin-arm64",
-    "build:binary:darwin-x64": "bun build src/index.ts --compile --target=bun-darwin-x64 --outfile dist/soma-darwin-x64",
-    "build:binary:linux-x64": "bun build src/index.ts --compile --target=bun-linux-x64 --outfile dist/soma-linux-x64",
-    "build:binary:linux-arm64": "bun build src/index.ts --compile --target=bun-linux-arm64 --outfile dist/soma-linux-arm64",
+    "build:binary:darwin-arm64": "bun build src/index.ts --compile --target=bun-darwin-arm64 --outfile dist/workstation-darwin-arm64",
+    "build:binary:darwin-x64": "bun build src/index.ts --compile --target=bun-darwin-x64 --outfile dist/workstation-darwin-x64",
+    "build:binary:linux-x64": "bun build src/index.ts --compile --target=bun-linux-x64 --outfile dist/workstation-linux-x64",
+    "build:binary:linux-arm64": "bun build src/index.ts --compile --target=bun-linux-arm64 --outfile dist/workstation-linux-arm64",
     "dev": "bun run src/index.ts"
   },
   "dependencies": {
     "citty": "^0.1.6",
-    "@soma/contract": "workspace:*",
-    "soma": "workspace:*"
+    "@workstation/contract": "workspace:*",
+    "workstation": "workspace:*"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tfcbot/soma.git",
+    "url": "https://github.com/tfcbot/workstation.git",
     "directory": "packages/cli"
   },
-  "homepage": "https://github.com/tfcbot/soma#readme",
+  "homepage": "https://github.com/tfcbot/workstation#readme",
   "bugs": {
-    "url": "https://github.com/tfcbot/soma/issues"
+    "url": "https://github.com/tfcbot/workstation/issues"
   }
 }

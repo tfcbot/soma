@@ -1,4 +1,4 @@
-# Soma — Protocol
+# Workstation — Protocol
 
 > A headless contract for agents that do work. Version 0.1 (draft).
 
@@ -13,7 +13,7 @@ RFC 2119.
 
 ## 1. Abstract
 
-Soma ("the body") is a headless backend that exposes a
+Workstation ("the body") is a headless backend that exposes a
 fixed set of **primitives** — phone, email, wallet, sandbox (compute), and filesystem (storage) —
 **directly** through one **gateway**: an API-key-gated, metered, observable HTTP contract. An
 external **Agent** (the brain, brought by the caller) calls the primitives to accomplish work and
@@ -21,7 +21,7 @@ external **Agent** (the brain, brought by the caller) calls the primitives to ac
 conforming implementation lets any agent reach people, pay for tooling, run code, and persist
 deliverables — a complete loop — without the caller's own credentials, and meters each call.
 
-Soma is **not** a task manager: tracking and sequencing work is the Agent's job, not the
+Workstation is **not** a task manager: tracking and sequencing work is the Agent's job, not the
 body's. The body's durable contribution is the **gateway** — identity (per-key accounts), metering
 (credits), abuse protection (rate limits), and observability (an event ledger) — over swappable
 primitive adapters.
@@ -31,7 +31,7 @@ primitive adapters.
 - **Principal** — the human customer. Owns their Agent and their data.
 - **Agent** — the LLM/automation that calls the contract (the "client" in the protocol sense).
   Out of scope to specify; brought by the Principal or Provider.
-- **Provider** — operates a deployment of Soma. In self-host mode the Principal is the
+- **Provider** — operates a deployment of Workstation. In self-host mode the Principal is the
   Provider; the Provider mints and owns API keys.
 - **Platform / body** — the conforming backend specified here. It MUST operate no agents.
 
@@ -252,7 +252,7 @@ via `CONVEX_AGENT_MODE=anonymous`).
 
 ## Glossary
 
-- **Soma / body** — the conforming backend; the primitives + gateway, headless.
+- **Workstation / body** — the conforming backend; the primitives + gateway, headless.
 - **Agent / brain** — the external caller; bring your own. Owns task tracking.
 - **Principal** — the customer.
 - **Provider** — operator of a deployment (the Principal, when self-hosting); mints API keys.

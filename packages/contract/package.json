@@ -1,7 +1,7 @@
 {
-  "name": "@soma/contract",
+  "name": "@workstation/contract",
   "version": "0.1.0",
-  "description": "Soma's typed operation registry — the single source of truth for the gateway contract (server, SDK, CLI, MCP, OpenAPI all derive from this).",
+  "description": "Workstation's typed operation registry — the single source of truth for the gateway contract (server, SDK, CLI, MCP, OpenAPI all derive from this).",
   "type": "module",
   "main": "./src/index.ts",
   "exports": { ".": "./src/index.ts" },

@@ -12,12 +12,12 @@ import { gatewayHandlers } from "./gatewayHandlers";
 type Ctx = Parameters<Parameters<typeof httpAction>[0]>[0];
 
 function topupUrl(accountId: string): string {
-  const base = process.env.SOMA_TOPUP_URL ?? "https://soma.example/topup";
+  const base = process.env.WORKSTATION_TOPUP_URL ?? "https://workstation.example/topup";
   return `${base}?account=${encodeURIComponent(accountId)}`;
 }
 
 async function checkRate(ctx: Ctx, account: Account, op: string): Promise<Response | null> {
-  const perMin = Number(process.env.SOMA_RATE_LIMIT_PER_MIN ?? 0);
+  const perMin = Number(process.env.WORKSTATION_RATE_LIMIT_PER_MIN ?? 0);
   if (!perMin) return null;
   const res = await ctx.runMutation(api.ratelimit.consume, {
     bucket: `${account.accountId}:${op}`,
@@ -48,7 +48,7 @@ async function meter(ctx: Ctx, account: Account, op: string, costCents: number):
 
 async function recordEvent(ctx: Ctx, accountId: string, op: string, costCents: number, status: string) {
   await ctx.runMutation(api.events.record, { accountId, op, costCents, status });
-  const hook = process.env.SOMA_WEBHOOK_URL;
+  const hook = process.env.WORKSTATION_WEBHOOK_URL;
   if (hook) {
     void fetch(hook, {
       method: "POST",

@@ -1,7 +1,7 @@
 {
-  "name": "soma",
+  "name": "workstation",
   "version": "0.1.0",
-  "description": "Soma — a headless contract for agents that do work. Typed SDK, inferred from the contract registry.",
+  "description": "Workstation — a headless contract for agents that do work. Typed SDK, inferred from the contract registry.",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -20,7 +20,7 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@soma/contract": "workspace:*",
+    "@workstation/contract": "workspace:*",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -30,11 +30,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tfcbot/soma.git",
+    "url": "https://github.com/tfcbot/workstation.git",
     "directory": "packages/sdk"
   },
-  "homepage": "https://github.com/tfcbot/soma#readme",
+  "homepage": "https://github.com/tfcbot/workstation#readme",
   "bugs": {
-    "url": "https://github.com/tfcbot/soma/issues"
+    "url": "https://github.com/tfcbot/workstation/issues"
   }
 }

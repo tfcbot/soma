@@ -1,4 +1,4 @@
-# Thesis — Soma
+# Thesis — Workstation
 
 The reasoning and philosophy behind the protocol. This doc explains *why*; the normative,
 implement-anywhere contract lives in [SPEC.md](./SPEC.md), and a concrete walkthrough in
@@ -17,7 +17,7 @@ coordinating the work is the agent brain's job, not the body's.
 
 | | What it is | Who owns it |
 |---|---|---|
-| **Soma** (the body) | the primitives | provided/hosted; headless |
+| **Workstation** (the body) | the primitives | provided/hosted; headless |
 | **Agent** (the brain) | the LLM loop, reasoning, data connections | the principal (bring your own) |
 
 We open-source **the body**. You bring **the brain**. The principal already has an agent —

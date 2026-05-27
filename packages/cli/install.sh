@@ -1,11 +1,11 @@
 #!/bin/sh
 set -e
 
-# Soma CLI installer
-# Usage: curl -fsSL https://soma.example/install.sh | sh
+# Workstation CLI installer
+# Usage: curl -fsSL https://workstation.example/install.sh | sh
 
-REPO="tfcbot/soma"   # repo hosting the release binaries (change to your fork if you redistribute)
-BINARY_NAME="soma"
+REPO="tfcbot/workstation"   # repo hosting the release binaries (change to your fork if you redistribute)
+BINARY_NAME="workstation"
 INSTALL_DIR="$HOME/.local/bin"
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; RESET='\033[0m'

@@ -1,6 +1,6 @@
 // Per-key account auth (SPEC §7.1). No single shared gateway key: every request carries a
 // bearer key that resolves to an account with a credit balance. The operator mints + owns keys
-// (see convex/accounts.ts mintKey). Soma defines no bypass/admin tier.
+// (see convex/accounts.ts mintKey). Workstation defines no bypass/admin tier.
 import { api } from "./_generated/api";
 import type { ActionCtx } from "./_generated/server";
 import { sha256hex } from "./keys";

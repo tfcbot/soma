@@ -9,14 +9,14 @@ export default defineSchema({
     creditsCents: v.number(),
     spentCents: v.number(),
     label: v.string(),
-    scopes: v.array(v.string()), // reserved for operator-defined permissions; Soma does not act on it
+    scopes: v.array(v.string()), // reserved for operator-defined permissions; Workstation does not act on it
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_apiKeyHash", ["apiKeyHash"])
     .index("by_accountId", ["accountId"]),
 
-  // Fixed-window rate-limit counters (SPEC §7.x). Off unless SOMA_RATE_LIMIT_PER_MIN is set.
+  // Fixed-window rate-limit counters (SPEC §7.x). Off unless WORKSTATION_RATE_LIMIT_PER_MIN is set.
   rateLimits: defineTable({
     key: v.string(),
     count: v.number(),

@@ -30,7 +30,7 @@ export function debit(balance: CreditBalance, cost: number): CreditBalance {
 /**
  * Add credits to a balance — the seam every funding path uses (top-up, subscription-style
  * monthly grant, manual credit). Increases the balance; `spentCents` is untouched because no
- * consumption is being reversed. Soma defines this primitive; the payment rail that calls it
+ * consumption is being reversed. Workstation defines this primitive; the payment rail that calls it
  * (Stripe, x402/MPP, a manual `convex run`) is the operator's choice.
  */
 export function grant(balance: CreditBalance, amount: number): CreditBalance {
