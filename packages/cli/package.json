@@ -1,7 +1,7 @@
 {
   "name": "soma-cli",
   "version": "0.1.0",
-  "description": "Soma CLI — drive the faculties from the terminal.",
+  "description": "Soma CLI — drive the primitives from the terminal.",
   "type": "module",
   "bin": {
     "soma": "./dist/index.mjs"

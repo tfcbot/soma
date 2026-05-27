@@ -19,7 +19,7 @@ import { AgentCard } from "../adapters/wallet/agentcard";
 import { FreestyleSandbox } from "../adapters/sandbox/freestyle";
 import { ArchilFileSystem } from "../adapters/filesystem/archil";
 
-// The five faculties the agent borrows. Each port → real adapter when its key(s) are present,
+// The five primitives the agent borrows. Each port → real adapter when its key(s) are present,
 // else the mock. (Todo/budget were workflow constructs and have been removed.)
 export interface Ports {
   phone: Phone;

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // Binary payloads cross the gateway as base64 strings (keeps the contract uniformly JSON).
-// Push large artifacts through the filesystem faculty + CDN url rather than streaming bytes.
+// Push large artifacts through the filesystem primitive + CDN url rather than streaming bytes.
 export const Base64 = z.string().describe("base64-encoded bytes");
 
 export const IssuedCard = z.object({

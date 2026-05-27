@@ -30,7 +30,7 @@ function op<I extends z.ZodTypeAny, O extends z.ZodTypeAny>(d: OpDef<I, O>): OpD
 const Empty = z.object({});
 const Ok = z.object({ ok: z.boolean() });
 
-// THE SINGLE SOURCE OF TRUTH. Add a faculty/op here, implement one typed handler, done —
+// THE SINGLE SOURCE OF TRUTH. Add a primitive/op here, implement one typed handler, done —
 // the server router, SDK, CLI, MCP, and OpenAPI all derive from this. Costs live here too.
 export const operations = {
   // ── Phone ───────────────────────────────────────────────────────────────

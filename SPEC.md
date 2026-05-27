@@ -14,9 +14,9 @@ RFC 2119.
 ## 1. Abstract
 
 Soma ("the body") is a headless backend that exposes a
-fixed set of **faculties** — phone, email, wallet, sandbox (compute), and filesystem (storage) —
+fixed set of **primitives** — phone, email, wallet, sandbox (compute), and filesystem (storage) —
 **directly** through one **gateway**: an API-key-gated, metered, observable HTTP contract. An
-external **Agent** (the brain, brought by the caller) calls the faculties to accomplish work and
+external **Agent** (the brain, brought by the caller) calls the primitives to accomplish work and
 **coordinates that work itself**. The platform operates no agents; it serves the contract. A
 conforming implementation lets any agent reach people, pay for tooling, run code, and persist
 deliverables — a complete loop — without the caller's own credentials, and meters each call.
@@ -24,7 +24,7 @@ deliverables — a complete loop — without the caller's own credentials, and m
 Soma is **not** a task manager: tracking and sequencing work is the Agent's job, not the
 body's. The body's durable contribution is the **gateway** — identity (per-key accounts), metering
 (credits), abuse protection (rate limits), and observability (an event ledger) — over swappable
-faculty adapters.
+primitive adapters.
 
 ## 2. Roles
 
@@ -39,19 +39,19 @@ faculty adapters.
 
 An implementation conforms to this protocol if and only if it:
 
-1. implements the five faculty interfaces in §5 (an implementation MAY add more, §10);
-2. exposes each faculty operation over the Gateway HTTP API (§7) with the authentication in §7.1;
+1. implements the five primitive interfaces in §5 (an implementation MAY add more, §10);
+2. exposes each primitive operation over the Gateway HTTP API (§7) with the authentication in §7.1;
 3. meters billable operations deterministically and returns `402` on an empty balance (§7.4);
 4. honors the security requirements in §9 — in particular, it MUST NOT expose secrets as a
-   faculty or endpoint.
+   primitive or endpoint.
 
-Vendor choices (§11) are **informative**: any adapter satisfying a faculty's interface conforms.
+Vendor choices (§11) are **informative**: any adapter satisfying a primitive's interface conforms.
 
 ## 4. Architecture
 
 The Agent calls **one** HTTP contract. The **gateway** is the deterministic spine: it
-authenticates the key to an account, meters/limits the call, routes it to a faculty, and records
-an event. Each faculty is a **port** with a swappable **adapter**. Business-critical logic
+authenticates the key to an account, meters/limits the call, routes it to a primitive, and records
+an event. Each primitive is a **port** with a swappable **adapter**. Business-critical logic
 (identity, credit accounting, rate limits) MUST live in this deterministic layer, never inside an
 agent.
 
@@ -70,9 +70,9 @@ The Agent MUST NOT be required to address adapters directly; it interacts only w
 contract. The contract is defined as a typed **operation registry** (§6); the gateway exposes
 every registry entry uniformly.
 
-## 5. Faculties
+## 5. Primitives
 
-Each faculty is defined by an interface (language-neutral; `bytes` = binary blob, `?` =
+Each primitive is defined by an interface (language-neutral; `bytes` = binary blob, `?` =
 optional/nullable). A conforming implementation MUST provide an adapter for each. Binary payloads
 cross the HTTP contract as base64.
 
@@ -104,7 +104,7 @@ getFile(path: string) -> bytes?
 dispose() -> void
 ```
 A conforming Sandbox MUST run unrestricted code in isolation from the Principal's accounts (§9)
-and SHOULD provide a full POSIX environment (so tools like ffmpeg and git run). Because faculty
+and SHOULD provide a full POSIX environment (so tools like ffmpeg and git run). Because primitive
 calls are independent HTTP requests, a conforming Sandbox SHOULD provide a **session that persists
 across calls** for a given account (a `putFile` then a later `exec`/`getFile` MUST address the
 same working tree).
@@ -124,7 +124,7 @@ URL). `publicUrl` MUST be deterministic for a given path.
 The contract is a set of named **operations**. Each operation declares a method, a path, an input
 schema, an output schema, and a **credit cost** (0 = free). The gateway exposes each operation as
 an HTTP endpoint (§7) and applies the same pipeline to all of them (§4). A conforming
-implementation MUST expose, at minimum, one operation per faculty interface method in §5, plus the
+implementation MUST expose, at minimum, one operation per primitive interface method in §5, plus the
 account-facing `balance` and `events` operations (§7).
 
 This registry is the **single source of truth**: server routing, client SDKs, and any published
@@ -139,7 +139,7 @@ All paths are relative to the deployment base URL. Bodies are JSON; binary field
 Every operation is gated identically: authenticate (§7.1) → rate limit (§7.5) → meter (§7.4) →
 validate input → run → record an event (§7.3).
 
-| Method & path | Faculty / purpose | Success | Errors |
+| Method & path | Primitive / purpose | Success | Errors |
 |---|---|---|---|
 | `POST /v1/phone/messages` | Phone: send SMS | `200` `{ id }` | `400`,`401`,`402`,`429` |
 | `POST /v1/email/messages` | Email: send | `200` `{ id }` | `400`,`401`,`402`,`429` |
@@ -195,8 +195,8 @@ metering, so a throttled call does not consume credits.
 
 ## 8. Security considerations
 
-- **Secrets are never a faculty.** Vendor credentials MUST be held server-side and MUST NOT be
-  exposed through any faculty or endpoint. The Agent borrows capabilities (send, pay, compute,
+- **Secrets are never a primitive.** Vendor credentials MUST be held server-side and MUST NOT be
+  exposed through any primitive or endpoint. The Agent borrows capabilities (send, pay, compute,
   store), never the underlying keys.
 - **Sandbox isolation.** Unrestricted execution MUST be isolated from the Principal's real
   accounts; the only spending channel is the prepaid wallet.
@@ -210,18 +210,18 @@ metering, so a throttled call does not consume credits.
 
 ## 9. Extensibility
 
-The five faculties are the starting set, not the ceiling. New operations (a new faculty method, or
-a new faculty such as `publish`) MUST be **additive** — a new entry in the operation registry (§6)
-plus, for a new faculty, a port + adapter — without changing existing faculty interfaces. Because
+The five primitives are the starting set, not the ceiling. New operations (a new primitive method, or
+a new primitive such as `publish`) MUST be **additive** — a new entry in the operation registry (§6)
+plus, for a new primitive, a port + adapter — without changing existing primitive interfaces. Because
 the registry is the single source of truth, an added operation surfaces in the server, the SDK,
-and any OpenAPI description from one definition. Breaking changes to a faculty interface or to §7
+and any OpenAPI description from one definition. Breaking changes to a primitive interface or to §7
 require a protocol version bump.
 
 ## 10. Reference adapters (informative)
 
 These satisfy the interfaces above; any equivalent adapter conforms.
 
-| Faculty | Reference adapter | Alternatives |
+| Primitive | Reference adapter | Alternatives |
 |---|---|---|
 | Phone | AgentPhone | Twilio |
 | Email | AgentMail | Postmark, SendGrid |
@@ -235,15 +235,15 @@ These satisfy the interfaces above; any equivalent adapter conforms.
 The included implementation is **single-node, personal** (one Principal, no tenant model), hosted
 on Convex:
 
-- Convex is the **composition root + host**, not a faculty. HTTP actions front the contract; the
+- Convex is the **composition root + host**, not a primitive. HTTP actions front the contract; the
   gateway builds every route from the typed operation registry. Per-key **accounts** gate each
   call; the operator mints keys (e.g. `accounts:mintKey`).
 - Vendor keys live in Convex environment variables, read server-side.
-- Vendor SDKs require Node, so faculty calls run in a Convex `"use node"` action; the
+- Vendor SDKs require Node, so primitive calls run in a Convex `"use node"` action; the
   isolate-runtime gateway delegates to them.
 - Compute = Freestyle (Sandbox); storage = Archil disk backed by an R2 bucket (FileSystem +
   personal CDN). The event ledger and accounts/rate-limit counters are Convex tables. Convex's
-  scheduler/vector/functions are deliberately **not** exposed as faculties (§8).
+  scheduler/vector/functions are deliberately **not** exposed as primitives (§8).
 
 See [GETTING_STARTED.md](./GETTING_STARTED.md) to run it (including headless, no-login operation
 via `CONVEX_AGENT_MODE=anonymous`).
@@ -252,11 +252,11 @@ via `CONVEX_AGENT_MODE=anonymous`).
 
 ## Glossary
 
-- **Soma / body** — the conforming backend; the faculties + gateway, headless.
+- **Soma / body** — the conforming backend; the primitives + gateway, headless.
 - **Agent / brain** — the external caller; bring your own. Owns task tracking.
 - **Principal** — the customer.
 - **Provider** — operator of a deployment (the Principal, when self-hosting); mints API keys.
-- **Faculty / port** — one of the five interfaces (§5), extensible (§9).
-- **Adapter** — a concrete implementation of a faculty (§10).
+- **Primitive / port** — one of the five interfaces (§5), extensible (§9).
+- **Adapter** — a concrete implementation of a primitive (§10).
 - **Gateway** — the deterministic spine: auth, metering, rate limits, events, routing.
 - **Operation** — a named registry entry (method, path, input, output, cost) the gateway exposes.

@@ -3,7 +3,7 @@
 **Soma is a headless contract for agents that do work.** Companion to [SPEC.md](./SPEC.md): the
 spec is abstract on purpose, so this doc plays out a real service end to end.
 
-One principle runs through every scenario: **the body gives the agent faculties; the agent does the
+One principle runs through every scenario: **the body gives the agent primitives; the agent does the
 work.** Soma authenticates the key, meters each call, and records what happened — phone, email,
 wallet, compute, storage, behind one gateway. Sequencing, retries, and "is this done" live in the
 agent (the brain), never in the body.
@@ -18,7 +18,7 @@ agent (the brain), never in the body.
   for everything. She does not want to own ad production: she briefs, and she receives.
 - **Lumen** — a new-style creative agency. It sells neither dashboards nor hourly design. It
   provisions an assistant per client and owns the agent (and its QA) that drives it.
-- **Soma** — the headless platform: five faculties behind one metered gateway. It operates no
+- **Soma** — the headless platform: five primitives behind one metered gateway. It operates no
   agents; Lumen runs on top of it.
 
 Maya owns no plumbing — no VPS, no API keys, no vendor accounts, no card or phone or inbox plugged
@@ -26,10 +26,10 @@ in, no dashboard to log into. She briefs, and she receives.
 
 ### Step 0 — Provisioning (Lumen, once)
 
-Lumen stands up an assistant for Maya: five faculties, deployed on her behalf, reached through one
+Lumen stands up an assistant for Maya: five primitives, deployed on her behalf, reached through one
 gateway.
 
-| Faculty | Provisioned as |
+| Primitive | Provisioned as |
 |---|---|
 | **Phone** | `+1 (415) 555-0123` — Maya texts this to brief and to hear status |
 | **Email** | `studio@maya-brand.soma.run` (client-facing) + a hidden `ops@…` inbox for signups/receipts |
@@ -49,7 +49,7 @@ phone number in plain English — same loop, different channel.)
 
 ### Step 2 — The loop, per ad
 
-Lumen's agent works each ad by calling the gateway faculties directly. Every call is authenticated
+Lumen's agent works each ad by calling the gateway primitives directly. Every call is authenticated
 by the key, metered against the credit balance, and recorded as an event:
 
 1. **Storage (read)** — `GET /v1/fs/objects`: pull the brand kit and prior winners.
@@ -69,14 +69,14 @@ failing silently.
 ### Step 3 — QA and observability (Lumen's product)
 
 A Lumen reviewer — human plus a QA agent — inspects the work: the sandbox contents, the stored
-renders, and the account's **event ledger** (`GET /v1/events` — every faculty call, its cost,
+renders, and the account's **event ledger** (`GET /v1/events` — every primitive call, its cost,
 ok/error). No screen-share, no "can you send me the files," no VPS spelunking; it is all
 observable. Weak ads get reworked; the agent reruns the relevant calls. Lumen carries the
 operational burden so Maya maintains nothing.
 
 ### Step 4 — Delivery
 
-When the batch is ready the agent uses a faculty: `POST /v1/email/messages` with the finished MP4s
+When the batch is ready the agent uses a primitive: `POST /v1/email/messages` with the finished MP4s
 attached by CDN url ("October ads — batch 1, 8 ready"), and a `POST /v1/phone/messages` SMS:
 *"8 of your 10 October ads are ready — sent to your email. 2 in rework."* Maya reviews from her own
 Claude or her phone. No login. A Provider that wants push can wire the optional event webhook to
@@ -85,7 +85,7 @@ fan activity out to a channel.
 ### Step 5 — Revision
 
 Maya: *"Ad 4's hook is flat — make it punchier."* She tells her agent, which relays to Lumen's
-agent; it reruns the compute, storage, and email faculties for that one ad and re-delivers.
+agent; it reruns the compute, storage, and email primitives for that one ad and re-delivers.
 Approval is something Maya says and the agents track.
 
 By month end: 10 ads delivered, every gateway call itemized in the event ledger, every vendor
@@ -107,11 +107,11 @@ visibility over a metered, observable gateway.
 
 ---
 
-## Scenario 2 — Extending the body (a new faculty)
+## Scenario 2 — Extending the body (a new primitive)
 
 Three months in, Maya asks Lumen to also *publish* the winning ads, not just deliver them.
 
-Lumen adds a faculty — `publish`, wrapping a social-posting vendor — the way every endpoint is
+Lumen adds a primitive — `publish`, wrapping a social-posting vendor — the way every endpoint is
 born: one entry in the typed operation registry (path, input/output schema, credit cost) plus one
 handler. Because the registry is the single source of truth, the new operation appears at once in
 the server, the typed SDK, the MCP tools, the CLI, and the OpenAPI spec — metered and observed like
@@ -123,8 +123,8 @@ POST /v1/publish/posts
 ```
 
 The agent gains one more capability: take a finished ad and push it live, paying any boost from a
-prepaid card, reporting back through the phone and email faculties. An `analytics` faculty arrives
-the same way — pull performance, feed it into next month's brief. **Faculties are additive, and
+prepaid card, reporting back through the phone and email primitives. An `analytics` primitive arrives
+the same way — pull performance, feed it into next month's brief. **Primitives are additive, and
 adding one is type-checked, not a rewire.**
 
 ---
@@ -136,12 +136,12 @@ lead-gen, ops:
 
 ```
 The principal briefs their agent (over phone/email, or any channel).
-The AGENT coordinates the work, calling faculties through the metered gateway:
+The AGENT coordinates the work, calling primitives through the metered gateway:
   run code on the COMPUTER · read/write STORAGE · pay via WALLET · sign up & deliver via EMAIL/PHONE
 Every call is authenticated, metered (credits → 402), and recorded (event ledger).
 The provider QAs by peering into the sandbox and the event ledger.
-The agent delivers through the email/phone faculty and reports back.
+The agent delivers through the email/phone primitive and reports back.
 ```
 
-The deliverable is interchangeable. The five faculties and the metered gateway are the constant —
+The deliverable is interchangeable. The five primitives and the metered gateway are the constant —
 and the work itself belongs to the brain.

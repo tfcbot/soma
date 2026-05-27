@@ -75,7 +75,7 @@ KEY="<the apiKey from accounts:mintKey>"
 # Check your balance (free)
 curl -s "$URL/v1/balance" -H "Authorization: Bearer $KEY"
 
-# Call a faculty — send an SMS (debits the key's credits per the op's cost)
+# Call a primitive — send an SMS (debits the key's credits per the op's cost)
 curl -s -X POST "$URL/v1/phone/messages" \
   -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
   -d '{"to":"+15551230000","body":"hello from the body"}'
@@ -96,8 +96,8 @@ A metered key with too few credits gets **402** (with a `topupUrl`); an over-rat
 
 ## 6. Point your agent at it
 
-An agent (Claude) drives the faculties over these endpoints. The `soma` SDK (`packages/sdk`) gives
-typed methods; `packages/mcp` exposes one MCP tool per faculty; `packages/cli` one command each —
+An agent (Claude) drives the primitives over these endpoints. The `soma` SDK (`packages/sdk`) gives
+typed methods; `packages/mcp` exposes one MCP tool per primitive; `packages/cli` one command each —
 all derived from `packages/contract`. Point any of them at your `baseUrl` + an account API key.
 
 ## Tests & typecheck
@@ -112,7 +112,7 @@ The `convex/` tree typechecks under `npx convex dev` once `_generated/` exists.
 ## Layout
 
 ```
-core/      pure hexagon — the 5 faculty ports, domain (credits, ratelimit); packages/contract = registry
+core/      pure hexagon — the 5 primitive ports, domain (credits, ratelimit); packages/contract = registry
 adapters/  one folder per vendor: real adapter + parallel mock
 convex/    the host — schema, DB fns, auth, composition root, HTTP router
 mcp/       dependency-free gateway client for agents
