@@ -1,12 +1,12 @@
 # Workstation
 
-> A programmable body for an agent's brain. An open, self-hostable template: **clone it, deploy your own, extend it.**
+> A workstation for your AI brain. An open, self-hostable template: **clone it, deploy your own, extend it.**
 
 **Five primitives** — **phone, email, wallet, computer, storage** — exposed directly through one
 metered **gateway**. They give an agent a *complete loop* to pursue a goal on the internet. We
 **operate no agents**; we expose the primitives so *someone else's* agent has everything it needs.
-We open-source the body; you bring the brain — and the brain coordinates its own work (Workstation is not
-a task manager).
+We open-source the workstation; you bring the brain — and the brain coordinates its own work (Workstation is
+not a task manager). Run it for your own agent, or operate it for others — the metered gateway works the same.
 
 We are deliberately **not** integrating with everything. The bet is that these five primitives,
 behind a keyed/metered/observable gateway, are enough for an agent to operate in the world on
@@ -15,7 +15,7 @@ plus one handler (see [Extending the gateway](#extending-the-gateway-type-safe))
 
 ## The one-liner
 
-> Most AI products try to *be* the agent. This one refuses to. It is the body the agent
+> Most AI products try to *be* the agent. This one refuses to. It is the workstation the agent
 > borrows — and a service model where the provider runs an **Agent Success Manager** instead
 > of a Customer Success Manager.
 
@@ -62,13 +62,13 @@ packages/{sdk,cli,mcp}/  all derived from packages/contract (no codegen — shar
 
 Key boundary: vendor SDKs need Node, so vendor calls run in `convex/node.ts`; the isolate-runtime
 HTTP layer delegates to them via `ctx.runAction`. Read-only enforcement and scheduling/memory are
-deliberately the *client agent's* job, not the body's (SPEC §9; THESIS).
+deliberately the *client agent's* job, not the workstation's (SPEC §9; THESIS).
 
 ## Clone & deploy your own
 
 Workstation is a **template you own**, not a SaaS you log into. Use it as a GitHub template (or clone
 it), point it at your own infra, swap in the vendors you want, and run your own single-node
-deployment of the body — your agent, your wallet ceiling, your data. Nothing phones home.
+deployment of the workstation — your agent, your wallet ceiling, your data. Nothing phones home.
 
 ```bash
 # 1. Get your own copy — GitHub "Use this template", or:
@@ -144,7 +144,7 @@ KEY=$(CONVEX_AGENT_MODE=anonymous bunx convex run accounts:mintKey '{"label":"ow
 curl -s http://127.0.0.1:3211/v1/balance -H "Authorization: Bearer $KEY"
 curl -s -X POST http://127.0.0.1:3211/v1/phone/messages \
   -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-  -d '{"to":"+15551230000","body":"hello from the body"}'
+  -d '{"to":"+15551230000","body":"hello from the workstation"}'
 ```
 
 Connect real providers one at a time by setting their keys (see `.env.example` and
@@ -156,7 +156,7 @@ Connect real providers one at a time by setting their keys (see `.env.example` a
   roles, conformance, the five primitive interfaces, the Gateway HTTP API + per-key accounts +
   metering (402) + rate limits (429) + the event ledger, security, extensibility, and the
   single-node Convex reference deployment.
-- [THESIS.md](./THESIS.md) — the **reasoning and philosophy**: body/brain split, dependency
+- [THESIS.md](./THESIS.md) — the **reasoning and philosophy**: brain/workstation split, dependency
   inversion, why raw-API+skills rots, the deterministic firebreak, cost control, the
   VPS→personal-API ladder, Backend-for-Agent, and the Agent Success Manager.
 - [SCENARIOS.md](./SCENARIOS.md) — concrete walkthrough: a creative agency delivering 10
