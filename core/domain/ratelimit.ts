@@ -1,8 +1,8 @@
 // Rate limiting — abuse protection, a separate axis from credits. Credits answer "can the
 // caller afford this call?" (402); rate limits answer "is the caller calling too often?" (429).
 // This is the FRAMEWORK only: pure fixed-window math + a config shape. Policy (the actual
-// limits, and whether limiting is on at all) is the operator's to set — Soma ships it off by
-// default (see convex/http.ts: enabled only when SOMA_RATE_LIMIT_PER_MIN is set).
+// limits, and whether limiting is on at all) is the operator's to set — Workstation ships it off by
+// default (see convex/http.ts: enabled only when WORKSTATION_RATE_LIMIT_PER_MIN is set).
 
 export interface RateRule {
   limit: number; // max calls allowed within the window

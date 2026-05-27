@@ -1,12 +1,12 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "Soma",
+    "title": "Workstation",
     "version": "0.1.0"
   },
   "servers": [
     {
-      "url": "https://api.soma.example"
+      "url": "https://api.workstation.example"
     }
   ],
   "components": {

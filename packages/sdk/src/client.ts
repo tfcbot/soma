@@ -1,24 +1,24 @@
-import { operations, type OperationId, type Input, type Output } from "@soma/contract";
+import { operations, type OperationId, type Input, type Output } from "@workstation/contract";
 
-export interface SomaConfig {
-  apiKey?: string; // falls back to SOMA_API_KEY, then ~/.soma/config.json
-  baseUrl?: string; // falls back to SOMA_API_URL, then ~/.soma/config.json, then localhost
+export interface WorkstationConfig {
+  apiKey?: string; // falls back to WORKSTATION_API_KEY, then ~/.workstation/config.json
+  baseUrl?: string; // falls back to WORKSTATION_API_URL, then ~/.workstation/config.json, then localhost
 }
 
 // The client's surface is INFERRED from the contract registry — one typed method per operation,
 // with input/output types straight from the Zod schemas. No codegen: in a monorepo the SDK simply
 // imports the same source of truth the server uses, so they can never drift.
-export type SomaClient = {
+export type WorkstationClient = {
   [K in OperationId]: (input: Input<K>) => Promise<Output<K>>;
 };
 
-export class SomaError extends Error {
+export class WorkstationError extends Error {
   constructor(
     readonly status: number,
     readonly body: unknown,
   ) {
     super(typeof body === "object" && body && "message" in body ? String((body as any).message) : `HTTP ${status}`);
-    this.name = "SomaError";
+    this.name = "WorkstationError";
   }
 }
 
@@ -28,7 +28,7 @@ function readConfigFile(): { apiUrl?: string; apiKey?: string } | null {
     const { readFileSync, existsSync } = require("fs");
     const { join } = require("path");
     const { homedir } = require("os");
-    const p = join(homedir(), ".soma", "config.json");
+    const p = join(homedir(), ".workstation", "config.json");
     if (existsSync(p)) return JSON.parse(readFileSync(p, "utf-8"));
   } catch {
     /* ignore */
@@ -36,11 +36,11 @@ function readConfigFile(): { apiUrl?: string; apiKey?: string } | null {
   return null;
 }
 
-export function createClient(config: SomaConfig = {}): SomaClient {
+export function createClient(config: WorkstationConfig = {}): WorkstationClient {
   const file = readConfigFile();
-  const apiKey = config.apiKey ?? process.env.SOMA_API_KEY ?? file?.apiKey;
+  const apiKey = config.apiKey ?? process.env.WORKSTATION_API_KEY ?? file?.apiKey;
   const baseUrl =
-    config.baseUrl ?? process.env.SOMA_API_URL ?? file?.apiUrl ?? "http://127.0.0.1:3211";
+    config.baseUrl ?? process.env.WORKSTATION_API_URL ?? file?.apiUrl ?? "http://127.0.0.1:3211";
 
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
@@ -62,9 +62,9 @@ export function createClient(config: SomaConfig = {}): SomaClient {
       }
       const res = await fetch(url, init);
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new SomaError(res.status, body);
+      if (!res.ok) throw new WorkstationError(res.status, body);
       return body;
     };
   }
-  return client as SomaClient;
+  return client as WorkstationClient;
 }

@@ -1,6 +1,6 @@
-# AGENTS.md — extending & maintaining Soma
+# AGENTS.md — extending & maintaining Workstation
 
-Soma is a **headless contract for agents that do work**: five primitives (phone, email, wallet,
+Workstation is a **headless contract for agents that do work**: five primitives (phone, email, wallet,
 computer, storage) exposed through one metered gateway. The contract is a **typed Zod registry**
 assembled from **self-contained capability modules**. The server router, SDK, CLI, MCP tools, and
 OpenAPI spec all derive from it. No codegen — in this monorepo, shared types give end-to-end safety.
@@ -49,7 +49,7 @@ edit `gateway.ts`, `invoke.ts`, or `http.ts`.
 5. If the real adapter needs a vendor SDK: add it to `convex.json` `node.externalPackages` + `bun add`.
 6. `bunx convex dev` to deploy.
 
-The route (auth + metering + events), `soma.xyzDo(...)`, the MCP tool, the CLI command, and the
+The route (auth + metering + events), `workstation.xyzDo(...)`, the MCP tool, the CLI command, and the
 OpenAPI entry all appear automatically.
 
 **No-vendor variant (DB-backed, like `balance`/`events`):** put the op in `modules/account/operations.ts`
@@ -57,7 +57,7 @@ with `serve: { gateway: true }` and add one handler to `convex/gatewayHandlers.t
 
 ## Import rule (read once)
 The Convex bundler can't resolve the workspace package name, so:
-- **Published packages** (`packages/sdk|cli|mcp`): `import … from "@soma/contract"`.
+- **Published packages** (`packages/sdk|cli|mcp`): `import … from "@workstation/contract"`.
 - **Convex host** (`convex/*`): `import … from "../packages/contract/src/index"`; modules via `../modules/...`.
 - **Inside a module**: import `op`/`Base64` from `../../packages/contract/src/...`; adapters import the
   port interface from `./operations` (the same folder).

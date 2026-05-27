@@ -3,9 +3,9 @@ import { v } from "convex/values";
 import { sha256hex, generateApiKey } from "./keys";
 import { debit as debitBalance, grant as grantBalance, refund as refundBalance } from "../core/domain/credits";
 
-// Per-key accounts — Soma's analog of VidJutsu's machineClients. A bearer key resolves to one
+// Per-key accounts — Workstation's analog of VidJutsu's machineClients. A bearer key resolves to one
 // of these. The single-node OPERATOR mints + distributes keys and owns their permissions.
-// Soma defines NO bypass/admin tier: billing applies uniformly (see core/domain/pricing.ts).
+// Workstation defines NO bypass/admin tier: billing applies uniformly (see core/domain/pricing.ts).
 
 function newAccountId(): string {
   return `acc_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
@@ -90,7 +90,7 @@ export const refundCredits = mutation({
 });
 
 /**
- * Add credits to an account — the funding SEAM. Soma ships no payment processor: an operator's
+ * Add credits to an account — the funding SEAM. Workstation ships no payment processor: an operator's
  * own rail calls this to settle. Reachable only server-side (no HTTP route), so a caller can
  * never credit itself. Use it for:
  *   - manual top-up:        bunx convex run accounts:grantCredits '{"accountId":"acc_…","amountCents":5000}'

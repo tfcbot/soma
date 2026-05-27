@@ -10,5 +10,5 @@ export async function sha256hex(input: string): Promise<string> {
 
 export function generateApiKey(): string {
   const hex = (crypto.randomUUID() + crypto.randomUUID()).replace(/-/g, "");
-  return `sk_soma_${hex.slice(0, 48)}`;
+  return `sk_workstation_${hex.slice(0, 48)}`;
 }

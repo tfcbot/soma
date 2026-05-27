@@ -1,8 +1,8 @@
 {
-  "name": "programmable-assistant",
+  "name": "workstation-monorepo",
   "version": "0.1.0",
   "private": true,
-  "description": "Soma — a headless contract for agents that do work: five primitives (phone, email, wallet, computer, storage) behind one metered gateway.",
+  "description": "Workstation — a headless contract for agents that do work: five primitives (phone, email, wallet, computer, storage) behind one metered gateway.",
   "type": "module",
   "workspaces": [
     "packages/*"
@@ -30,10 +30,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tfcbot/soma.git"
+    "url": "https://github.com/tfcbot/workstation.git"
   },
-  "homepage": "https://github.com/tfcbot/soma#readme",
+  "homepage": "https://github.com/tfcbot/workstation#readme",
   "bugs": {
-    "url": "https://github.com/tfcbot/soma/issues"
+    "url": "https://github.com/tfcbot/workstation/issues"
   }
 }

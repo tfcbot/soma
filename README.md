@@ -1,11 +1,11 @@
-# Soma
+# Workstation
 
 > A programmable body for an agent's brain. An open, self-hostable template: **clone it, deploy your own, extend it.**
 
 **Five primitives** — **phone, email, wallet, computer, storage** — exposed directly through one
 metered **gateway**. They give an agent a *complete loop* to pursue a goal on the internet. We
 **operate no agents**; we expose the primitives so *someone else's* agent has everything it needs.
-We open-source the body; you bring the brain — and the brain coordinates its own work (Soma is not
+We open-source the body; you bring the brain — and the brain coordinates its own work (Workstation is not
 a task manager).
 
 We are deliberately **not** integrating with everything. The bet is that these five primitives,
@@ -66,14 +66,14 @@ deliberately the *client agent's* job, not the body's (SPEC §9; THESIS).
 
 ## Clone & deploy your own
 
-Soma is a **template you own**, not a SaaS you log into. Use it as a GitHub template (or clone
+Workstation is a **template you own**, not a SaaS you log into. Use it as a GitHub template (or clone
 it), point it at your own infra, swap in the vendors you want, and run your own single-node
 deployment of the body — your agent, your wallet ceiling, your data. Nothing phones home.
 
 ```bash
 # 1. Get your own copy — GitHub "Use this template", or:
-git clone https://github.com/tfcbot/soma.git
-cd soma
+git clone https://github.com/tfcbot/workstation.git
+cd workstation
 bun install
 
 # 2. Run it locally on mocks — no vendor keys, no Convex login:
@@ -97,7 +97,7 @@ If you redistribute your own build, change `REPO=` in that script to your fork.
 
 ## Charging for usage (optional)
 
-Soma is a framework: it ships the *metering*, not a payment processor. Each endpoint has a
+Workstation is a framework: it ships the *metering*, not a payment processor. Each endpoint has a
 credit cost in the contract registry `packages/contract/src/operations.ts` (0 = free). A bearer key is an account with a credit
 balance; billable calls debit it, and an empty balance returns `402` with a `topupUrl` and a
 `WWW-Authenticate: Payment` header (agent-native — an x402/MPP agent can settle inline).
@@ -110,8 +110,8 @@ bunx convex run accounts:grantCredits '{"accountId":"acc_…","amountCents":5000
 
 Wire that to whatever you like — a manual top-up, a scheduled monthly grant, or a payment
 webhook. For a full Stripe lifecycle, drop in [`@convex-dev/stripe`](https://www.convex.dev/components/stripe)
-and call `grantCredits` from its `checkout.session.completed` handler; point `SOMA_TOPUP_URL`
-at your checkout. Optional abuse protection: set `SOMA_RATE_LIMIT_PER_MIN` (per account, per
+and call `grantCredits` from its `checkout.session.completed` handler; point `WORKSTATION_TOPUP_URL`
+at your checkout. Optional abuse protection: set `WORKSTATION_RATE_LIMIT_PER_MIN` (per account, per
 operation) to get `429 + Retry-After`. None of this is on by default.
 
 ## Extending the gateway (type-safe)

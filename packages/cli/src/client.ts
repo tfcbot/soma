@@ -1,10 +1,10 @@
-// Soma CLI HTTP client. Self-contained (no SDK dep) so the compiled binary stays small.
-// Config lives in ~/.soma/config.json — shared with the SDK.
+// Workstation CLI HTTP client. Self-contained (no SDK dep) so the compiled binary stays small.
+// Config lives in ~/.workstation/config.json — shared with the SDK.
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { join } from "path";
 import { homedir } from "os";
 
-export const CONFIG_DIR = join(homedir(), ".soma");
+export const CONFIG_DIR = join(homedir(), ".workstation");
 export const CONFIG_FILE = join(CONFIG_DIR, "config.json");
 
 interface Config {
@@ -43,7 +43,7 @@ export function setApiUrl(url: string) {
 export async function apiRequest(method: string, path: string, body?: unknown): Promise<unknown> {
   const config = loadConfig();
   if (!config.apiKey) {
-    throw new Error('Not authenticated. Run "soma auth --key <your_api_key>" first.');
+    throw new Error('Not authenticated. Run "workstation auth --key <your_api_key>" first.');
   }
   const res = await fetch(`${config.apiUrl}${path}`, {
     method,

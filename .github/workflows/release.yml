@@ -1,7 +1,7 @@
 name: Release CLI binaries
 
 # Cut a release by pushing a tag like v0.1.0. Builds the four bun-compiled
-# `soma` CLI binaries and attaches them (plus install.sh) to the GitHub Release,
+# `workstation` CLI binaries and attaches them (plus install.sh) to the GitHub Release,
 # which is what packages/cli/install.sh downloads via `curl | sh`.
 on:
   push:
@@ -35,9 +35,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            packages/cli/dist/soma-darwin-arm64
-            packages/cli/dist/soma-darwin-x64
-            packages/cli/dist/soma-linux-x64
-            packages/cli/dist/soma-linux-arm64
+            packages/cli/dist/workstation-darwin-arm64
+            packages/cli/dist/workstation-darwin-x64
+            packages/cli/dist/workstation-linux-x64
+            packages/cli/dist/workstation-linux-arm64
             packages/cli/install.sh
           generate_release_notes: true

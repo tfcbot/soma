@@ -1,10 +1,10 @@
 {
-  "name": "soma-mcp",
+  "name": "workstation-mcp",
   "version": "0.1.0",
-  "description": "Soma MCP server — exposes the primitives as MCP tools for any agent.",
+  "description": "Workstation MCP server — exposes the primitives as MCP tools for any agent.",
   "type": "module",
   "bin": {
-    "soma-mcp": "./dist/index.mjs"
+    "workstation-mcp": "./dist/index.mjs"
   },
   "files": [
     "dist"
@@ -15,18 +15,18 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "soma": "workspace:*",
+    "workstation": "workspace:*",
     "zod": "^3.23.8",
-    "@soma/contract": "workspace:*"
+    "@workstation/contract": "workspace:*"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tfcbot/soma.git",
+    "url": "https://github.com/tfcbot/workstation.git",
     "directory": "packages/mcp"
   },
-  "homepage": "https://github.com/tfcbot/soma#readme",
+  "homepage": "https://github.com/tfcbot/workstation#readme",
   "bugs": {
-    "url": "https://github.com/tfcbot/soma/issues"
+    "url": "https://github.com/tfcbot/workstation/issues"
   }
 }
