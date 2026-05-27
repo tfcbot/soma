@@ -774,6 +774,244 @@
           }
         }
       }
+    },
+    "/v1/topup": {
+      "post": {
+        "summary": "Create a Stripe checkout to top up credits",
+        "operationId": "createTopup",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amountCents": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "amountCents"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "url"
+                  ]
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required (metered key out of credits)"
+          },
+          "429": {
+            "description": "Too Many Requests (rate limited)"
+          }
+        }
+      }
+    },
+    "/v1/signup": {
+      "post": {
+        "summary": "Start self-serve signup — Stripe checkout that mints a key",
+        "operationId": "signup",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amountCents": {
+                    "type": "number"
+                  },
+                  "scopes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "amountCents"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string"
+                    },
+                    "claimToken": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "url",
+                    "claimToken"
+                  ]
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required (metered key out of credits)"
+          },
+          "429": {
+            "description": "Too Many Requests (rate limited)"
+          }
+        }
+      }
+    },
+    "/v1/signup/claim": {
+      "post": {
+        "summary": "Claim a paid signup and retrieve the key",
+        "operationId": "claimSignup",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "claimToken": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "claimToken"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "apiKey": {
+                      "type": "string"
+                    },
+                    "accountId": {
+                      "type": "string"
+                    },
+                    "creditsCents": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required (metered key out of credits)"
+          },
+          "429": {
+            "description": "Too Many Requests (rate limited)"
+          }
+        }
+      }
+    },
+    "/v1/topup/confirm": {
+      "post": {
+        "summary": "Confirm/poll a top-up Checkout session",
+        "operationId": "confirmTopup",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "sessionId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "creditsCents": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required (metered key out of credits)"
+          },
+          "429": {
+            "description": "Too Many Requests (rate limited)"
+          }
+        }
+      }
     }
   }
 }

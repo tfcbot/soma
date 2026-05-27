@@ -24,6 +24,26 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_key", ["key"]),
 
+  // Fulfilled Stripe Checkout sessions — makes crediting idempotent (webhook AND poll can both
+  // fire; a session is credited at most once).
+  topups: defineTable({
+    sessionId: v.string(),
+    accountId: v.string(),
+    amountCents: v.number(),
+    ts: v.number(),
+  }).index("by_sessionId", ["sessionId"]),
+
+  // Self-serve signup claim tokens. A public POST /v1/signup creates a Checkout session + an
+  // unguessable claimToken; the buyer polls POST /v1/signup/claim, which mints their key once the
+  // session is paid. accountId is set when claimed, so a token mints at most one key (idempotent).
+  claims: defineTable({
+    claimToken: v.string(),
+    sessionId: v.string(),
+    accountId: v.optional(v.string()), // set on first successful claim
+    createdAt: v.number(),
+    claimedAt: v.optional(v.number()),
+  }).index("by_claimToken", ["claimToken"]),
+
   // Generic usage/observability ledger — one row per gated primitive call.
   events: defineTable({
     accountId: v.string(),

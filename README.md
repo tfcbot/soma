@@ -102,17 +102,30 @@ credit cost in the contract registry `packages/contract/src/operations.ts` (0 = 
 balance; billable calls debit it, and an empty balance returns `402` with a `topupUrl` and a
 `WWW-Authenticate: Payment` header (agent-native — an x402/MPP agent can settle inline).
 
-You bring the rail. To add credits, call the funding seam:
+**Stripe is the shipped reference rail.** Set `STRIPE_SECRET_KEY` and the gateway exposes
+`POST /v1/topup` (a Stripe Checkout session — the URL a `402` points at). Paid sessions are
+credited **idempotently** (at most once per session) through one vendor-neutral seam, two ways:
+a signature-verified `POST /webhooks/stripe` (set `STRIPE_WEBHOOK_SECRET`; for local dev,
+`stripe listen --forward-to <deploy>/webhooks/stripe` via the [Stripe CLI](https://docs.stripe.com/stripe-cli)
+prints the `whsec_`), or a poll endpoint `POST /v1/topup/confirm {sessionId}` that needs **no
+webhook** — so you can test the paid flow before wiring one. Swap rails by replacing
+`convex/payments.ts`:
 
 ```bash
+# the seam every rail calls (also a manual top-up / scheduled grant):
 bunx convex run accounts:grantCredits '{"accountId":"acc_…","amountCents":5000}'
 ```
 
-Wire that to whatever you like — a manual top-up, a scheduled monthly grant, or a payment
-webhook. For a full Stripe lifecycle, drop in [`@convex-dev/stripe`](https://www.convex.dev/components/stripe)
-and call `grantCredits` from its `checkout.session.completed` handler; point `WORKSTATION_TOPUP_URL`
-at your checkout. Optional abuse protection: set `WORKSTATION_RATE_LIMIT_PER_MIN` (per account, per
-operation) to get `429 + Retry-After`. None of this is on by default.
+**Getting the first key.** The operator mints keys directly (`bunx convex run accounts:mintKey …`)
+and hands them out. To let clients onboard themselves, the same Stripe rail powers a **public,
+key-less signup** (à la VidJutsu): `POST /v1/signup {amountCents}` returns a Checkout `url` + a
+`claimToken`; after paying, the buyer polls `POST /v1/signup/claim {claimToken}` and the gateway
+mints their key with that starting balance — **exactly once** per token, shown a single time. No
+webhook needed (the claim poll is the delivery), so it works the moment `STRIPE_SECRET_KEY` is set.
+`mintKey` stays operator-only; signup is the paid path to a first key.
+
+Optional abuse protection: set `WORKSTATION_RATE_LIMIT_PER_MIN` (per account, per operation) for
+`429 + Retry-After`. Metering and top-ups are off until you set per-op costs and the Stripe keys.
 
 ## Extending the gateway (type-safe)
 
