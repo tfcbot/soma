@@ -1,17 +1,8 @@
-import type { Email, EmailAttachment } from "../../core/ports/email";
+import type { EmailPort, Input, Output } from "../../packages/contract/src/index";
 
-export interface SentEmail {
-  to: string;
-  subject: string;
-  body: string;
-  attachments?: EmailAttachment[];
-}
-
-// Mock + spy: records every send so tests can assert what was delivered.
-export class MockEmail implements Email {
-  readonly sent: SentEmail[] = [];
-
-  async send(input: SentEmail): Promise<{ id: string }> {
+export class MockEmail implements EmailPort {
+  readonly sent: Input<"emailSend">[] = [];
+  async send(input: Input<"emailSend">): Promise<Output<"emailSend">> {
     this.sent.push(input);
     return { id: `msg_mock_${this.sent.length}` };
   }

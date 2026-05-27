@@ -1,25 +1,22 @@
-import type { FileSystem, WriteResult } from "../../core/ports/filesystem";
+import type { FileSystemPort, Input, Output } from "../../packages/contract/src/index";
 
-// In-memory filesystem with stable mock:// public URLs. Module-level store so state persists
-// across separate gateway calls (each call builds a fresh adapter); the real R2 adapter persists
-// inherently. For local/mock mode + tests.
-const blobs = new Map<string, Uint8Array>();
+// In-memory FS with stable mock:// URLs. Module-level store so state persists across calls.
+const blobs = new Map<string, Buffer>();
 
-export class MockFileSystem implements FileSystem {
-  async read(path: string): Promise<Uint8Array | null> {
-    return blobs.get(path) ?? null;
+export class MockFileSystem implements FileSystemPort {
+  async read(input: Input<"fsRead">): Promise<Output<"fsRead">> {
+    const b = blobs.get(input.path);
+    return { data: b ? b.toString("base64") : null };
   }
-
-  async write(path: string, data: Uint8Array | string, opts?: { public?: boolean }): Promise<WriteResult> {
-    blobs.set(path, typeof data === "string" ? new TextEncoder().encode(data) : data);
-    return { path, url: opts?.public ? this.publicUrl(path) : undefined };
+  async write(input: Input<"fsWrite">): Promise<Output<"fsWrite">> {
+    blobs.set(input.path, Buffer.from(input.data, "base64"));
+    return { path: input.path, url: input.public ? `mock://${input.path}` : undefined };
   }
-
-  async list(prefix = ""): Promise<string[]> {
-    return [...blobs.keys()].filter((k) => k.startsWith(prefix));
+  async list(input: Input<"fsList">): Promise<Output<"fsList">> {
+    const prefix = input.prefix ?? "";
+    return { paths: [...blobs.keys()].filter((k) => k.startsWith(prefix)) };
   }
-
-  publicUrl(path: string): string {
-    return `mock://${path}`;
+  async publicUrl(input: Input<"fsPublicUrl">): Promise<Output<"fsPublicUrl">> {
+    return { url: `mock://${input.path}` };
   }
 }

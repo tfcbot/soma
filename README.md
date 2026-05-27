@@ -48,11 +48,15 @@ personal** deployment (SPEC.md §12).
 packages/contract/  the typed operation registry (Zod) — THE single source of truth
 core/        pure hexagon: the 5 primitive ports + domain (credits, ratelimit) + tests
 adapters/    one folder per primitive: a real adapter + a mock (mocks double as test spies)
+packages/contract/  the typed registry (Zod) + the port interfaces — THE single source of truth
+core/        pure hexagon: domain (credits, ratelimit) + tests
+adapters/    one folder per primitive: a real adapter + a mock, typed straight from the registry
 convex/      the host / gateway
-  gateway.ts   builds every HTTP route from the registry: auth → 429 → 402 → handler → event
-  handlers.ts  the typed handler map (one per op; a mismatch is a compile error)
-  node.ts      "use node" — vendor-touching primitive calls run here
-  accounts.ts / ratelimit.ts / events.ts / auth.ts / composition.ts / http.ts
+  gateway.ts   builds every HTTP route from the registry: auth → 429 → 402 → dispatch → event
+  invoke.ts    "use node" — ONE generic dispatcher; calls the right port adapter method
+  ports.ts     the port registry (real adapter if keys present, else mock)
+  gatewayHandlers.ts  the few DB-backed ops (balance, events)
+  accounts.ts / ratelimit.ts / events.ts / auth.ts / http.ts
 packages/{sdk,cli,mcp}/  all derived from packages/contract (no codegen — shared types)
 ```
 
@@ -115,9 +119,11 @@ operation) to get `429 + Retry-After`. None of this is on by default.
 Adding an endpoint is a spec-first, type-checked edit — no codegen, because in a monorepo the
 server and clients share one definition:
 
-1. Add an operation to `packages/contract/src/operations.ts` (path, method, Zod input/output, cost).
-2. Implement one handler in `convex/handlers.ts` — TypeScript forces its signature to match the
-   operation's input/output (a mismatch fails `tsc`).
+1. Add an operation to `packages/contract/src/operations.ts` — path, method, Zod input/output,
+   cost, and a `serve` (a port+method for vendor ops, or `{ gateway: true }` for DB ops).
+2. For a vendor op, implement that one method on the port adapter (typed straight from the
+   registry — a mismatch fails `tsc`); a gateway op gets a small handler in `gatewayHandlers.ts`.
+   No per-op router or node action — the generic dispatcher (`convex/invoke.ts`) handles it.
 3. Done. The HTTP route (auth + metering + events), the typed SDK method, the MCP tool, the CLI
    command, and the OpenAPI spec all derive from that single entry.
 
