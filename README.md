@@ -94,6 +94,25 @@ What you customize:
 The CLI installer (`packages/cli/install.sh`) pulls binaries from this repo's GitHub Releases.
 If you redistribute your own build, change `REPO=` in that script to your fork.
 
+## Charging for usage (optional)
+
+Soma is a framework: it ships the *metering*, not a payment processor. Each endpoint has a
+credit cost in `core/domain/pricing.ts` (0 = free). A bearer key is an account with a credit
+balance; billable calls debit it, and an empty balance returns `402` with a `topupUrl` and a
+`WWW-Authenticate: Payment` header (agent-native — an x402/MPP agent can settle inline).
+
+You bring the rail. To add credits, call the funding seam:
+
+```bash
+bunx convex run accounts:grantCredits '{"accountId":"acc_…","amountCents":5000}'
+```
+
+Wire that to whatever you like — a manual top-up, a scheduled monthly grant, or a payment
+webhook. For a full Stripe lifecycle, drop in [`@convex-dev/stripe`](https://www.convex.dev/components/stripe)
+and call `grantCredits` from its `checkout.session.completed` handler; point `SOMA_TOPUP_URL`
+at your checkout. Optional abuse protection: set `SOMA_RATE_LIMIT_PER_MIN` (per account, per
+operation) to get `429 + Retry-After`. None of this is on by default.
+
 ## Quickstart
 
 ```bash

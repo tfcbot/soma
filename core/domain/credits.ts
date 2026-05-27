@@ -28,8 +28,21 @@ export function debit(balance: CreditBalance, cost: number): CreditBalance {
   };
 }
 
-/** Returns the next balance after crediting `amount` (top-up or refund). */
-export function credit(balance: CreditBalance, amount: number): CreditBalance {
+/**
+ * Add credits to a balance — the seam every funding path uses (top-up, subscription-style
+ * monthly grant, manual credit). Increases the balance; `spentCents` is untouched because no
+ * consumption is being reversed. Soma defines this primitive; the payment rail that calls it
+ * (Stripe, x402/MPP, a manual `convex run`) is the operator's choice.
+ */
+export function grant(balance: CreditBalance, amount: number): CreditBalance {
+  return {
+    creditsCents: balance.creditsCents + amount,
+    spentCents: balance.spentCents,
+  };
+}
+
+/** Reverse a debit (e.g. a vendor op failed after charging): restores balance AND spent. */
+export function refund(balance: CreditBalance, amount: number): CreditBalance {
   return {
     creditsCents: balance.creditsCents + amount,
     spentCents: Math.max(0, balance.spentCents - amount),

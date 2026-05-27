@@ -37,7 +37,10 @@ npx convex run accounts:mintKey '{"label":"owner","creditsCents":100000}'
 
 Billing applies uniformly — there is no built-in admin/free tier. Zero-cost operations work on
 any key; to give free access set per-op cost to 0 in `core/domain/pricing.ts` or mint a large
-balance. Per-op prices live in that one file.
+balance. Per-op prices live in that one file. To add credits to a key, call the funding
+seam: `bunx convex run accounts:grantCredits '{"accountId":"acc_…","amountCents":5000}'`.
+Soma ships no payment processor — wire that to your own rail (manual, a monthly grant, or a
+payment webhook such as `@convex-dev/stripe`). Optional abuse protection: `SOMA_RATE_LIMIT_PER_MIN`.
 
 ## 4. Connect your providers (optional)
 

@@ -201,6 +201,12 @@ payment-capable agent (e.g. MPP / x402) can settle inline. Metering applies to e
 uniformly (no bypass tier). This is distinct from the budget envelope (§8), which caps the
 *agent's* vendor spend, not the *caller's* spend with the Provider.
 
+Credits are *added* to a balance through one server-side seam (`accounts:grantCredits`); the
+protocol defines the seam, **not** the purchase rail. How credits are bought — Stripe checkout,
+agent-native x402 / MPP settlement, a subscription-style monthly grant, or a manual top-up — is
+the Provider's choice and out of scope here. A conforming implementation MUST expose a way to
+add credits to an account and MUST NOT make that path reachable by the spending caller itself.
+
 ### 7.5 Rate limiting (abuse protection)
 Independently of credits, a Provider MAY rate-limit calls to protect against abuse. The
 reference implementation ships a fixed-window framework (per `(account, operation)` per

@@ -1,7 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { sha256hex, generateApiKey } from "./keys";
-import { debit as debitBalance, credit as creditBalance } from "../core/domain/credits";
+import { debit as debitBalance, grant as grantBalance, refund as refundBalance } from "../core/domain/credits";
 
 // Per-key accounts — Soma's analog of VidJutsu's machineClients. A bearer key resolves to one
 // of these. The single-node OPERATOR mints + distributes keys and owns their permissions.
@@ -74,7 +74,7 @@ export const debitCredits = mutation({
   },
 });
 
-// Refund (on vendor-op failure after a debit) and top-up share this credit path.
+// Refund a debit (gate calls this when a vendor op fails after charging) — restores credits AND spent.
 export const refundCredits = mutation({
   args: { accountId: v.string(), amountCents: v.number() },
   handler: async (ctx, { accountId, amountCents }) => {
@@ -83,8 +83,30 @@ export const refundCredits = mutation({
       .withIndex("by_accountId", (q) => q.eq("accountId", accountId))
       .unique();
     if (!a) return null;
-    const next = creditBalance({ creditsCents: a.creditsCents, spentCents: a.spentCents }, amountCents);
+    const next = refundBalance({ creditsCents: a.creditsCents, spentCents: a.spentCents }, amountCents);
     await ctx.db.patch(a._id, { ...next, updatedAt: Date.now() });
     return next;
+  },
+});
+
+/**
+ * Add credits to an account — the funding SEAM. Soma ships no payment processor: an operator's
+ * own rail calls this to settle. Reachable only server-side (no HTTP route), so a caller can
+ * never credit itself. Use it for:
+ *   - manual top-up:        bunx convex run accounts:grantCredits '{"accountId":"acc_…","amountCents":5000}'
+ *   - subscription grant:   a scheduled function that grants N cents/month
+ *   - a payment webhook:    e.g. @convex-dev/stripe's checkout.session.completed handler
+ */
+export const grantCredits = mutation({
+  args: { accountId: v.string(), amountCents: v.number() },
+  handler: async (ctx, { accountId, amountCents }) => {
+    const a = await ctx.db
+      .query("accounts")
+      .withIndex("by_accountId", (q) => q.eq("accountId", accountId))
+      .unique();
+    if (!a) throw new Error(`account_not_found:${accountId}`);
+    const next = grantBalance({ creditsCents: a.creditsCents, spentCents: a.spentCents }, amountCents);
+    await ctx.db.patch(a._id, { ...next, updatedAt: Date.now() });
+    return { accountId, ...next };
   },
 });
