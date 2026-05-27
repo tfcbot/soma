@@ -1,6 +1,6 @@
-# The Programmable Assistant Protocol
+# Soma — the Programmable Assistant Protocol
 
-> Working codename: **Soma**. Version: 0.1 (draft).
+> A headless contract for agents that do work. Version 0.1 (draft).
 
 This document specifies the protocol normatively — enough to implement it in any language or
 stack, the way an OAuth or webhook spec does. The reasoning behind every choice lives in
@@ -130,8 +130,8 @@ account-facing `balance` and `events` operations (§7).
 This registry is the **single source of truth**: server routing, client SDKs, and any published
 OpenAPI description derive from it. Adding or changing operations is §10.
 
-There is **no work-state resource and no lifecycle state machine** in the body. Sequencing,
-retries, approval, and "done"-ness are the Agent's concern.
+The body models no work-state and no task lifecycle: sequencing, retries, approval, and
+"done"-ness are the Agent's concern.
 
 ## 7. Gateway HTTP API
 
@@ -168,7 +168,7 @@ for the protocol.
 ### 7.2 Observability and events
 The gateway MUST record an event for every gated call — at least `{ accountId, op, costCents,
 status, ts }` — and expose an account's own events via `GET /v1/events`. This event ledger is the
-body's unit of observability (it replaces any work-state resource). Implementations MAY fan events
+body's unit of observability. Implementations MAY fan events
 out to a Provider-configured webhook. Pull (`GET`) and push (event/webhook) are the only
 interaction patterns.
 
