@@ -7,9 +7,45 @@
   "tags": [
     {
       "name": "Todo"
+    },
+    {
+      "name": "Billing"
     }
   ],
   "paths": {
+    "/v1/balance": {
+      "get": {
+        "operationId": "getBalance",
+        "summary": "Get credit balance",
+        "description": "Return the calling key's account role and credit balance.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Balance"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 Unauthorized — missing or invalid 'Authorization: Bearer <key>'.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
     "/v1/todo": {
       "post": {
         "operationId": "createTodo",
@@ -43,6 +79,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "402 Payment Required — metered key has insufficient credits.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRequiredProblem"
                 }
               }
             }
@@ -308,6 +354,16 @@
               }
             }
           },
+          "402": {
+            "description": "402 Payment Required — metered key has insufficient credits.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRequiredProblem"
+                }
+              }
+            }
+          },
           "409": {
             "description": "409 Conflict — illegal state transition or vendor operation failure.",
             "content": {
@@ -366,6 +422,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "402 Payment Required — metered key has insufficient credits.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRequiredProblem"
                 }
               }
             }
@@ -437,6 +503,28 @@
           }
         },
         "description": "Error envelope returned by every non-2xx response."
+      },
+      "Balance": {
+        "type": "object",
+        "required": [
+          "accountId",
+          "creditsCents",
+          "spentCents"
+        ],
+        "properties": {
+          "accountId": {
+            "type": "string"
+          },
+          "creditsCents": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "spentCents": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "A caller's credit balance."
       },
       "BearerAuth": {
         "type": "object",
@@ -610,6 +698,55 @@
           }
         },
         "description": "A prepaid virtual card issued against a todo's budget envelope."
+      },
+      "PaymentRequiredProblem": {
+        "type": "object",
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail",
+          "required",
+          "balance",
+          "topupUrl"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Problem type URI.",
+            "default": "https://paymentauth.org/problems/payment-required"
+          },
+          "title": {
+            "type": "string",
+            "description": "Short human-readable summary.",
+            "default": "Payment Required"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "description": "HTTP status (always 402).",
+            "default": 402
+          },
+          "detail": {
+            "type": "string",
+            "description": "Human-readable explanation."
+          },
+          "required": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Credits (cents) required for this call."
+          },
+          "balance": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Caller's current balance (cents)."
+          },
+          "topupUrl": {
+            "type": "string",
+            "description": "URL to top up credits."
+          }
+        },
+        "description": "RFC 7807 Problem Details body for HTTP 402, returned when a metered key lacks the credits for a call. Content-Type: application/problem+json. Paired with a `WWW-Authenticate: Payment` header so a payment-capable agent (MPP / x402) can settle inline."
       },
       "Todo": {
         "type": "object",

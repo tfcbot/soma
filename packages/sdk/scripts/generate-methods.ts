@@ -13,6 +13,7 @@
  */
 import { writeFileSync } from "fs";
 import { resolve } from "path";
+import { PRICING } from "../../../core/domain/pricing";
 
 const DEFAULT_SPEC = resolve(import.meta.dir, "../../../spec/openapi/spec.json");
 const outPath = resolve(import.meta.dir, "../src/methods.ts");
@@ -109,6 +110,8 @@ function emit(ops: Operation[]): string {
     const meta = ROUTE_META[op.operationId];
     const doc = [op.summary || op.operationId];
     if (meta?.auth === "authenticated") doc.push("Auth required.");
+    const cost = PRICING[op.operationId] ?? 0;
+    doc.push(cost > 0 ? `Costs ${cost} credits on metered keys (admin keys free).` : "Free.");
     L.push(`  /** ${doc.join(" ")} */`);
 
     const args: string[] = [];

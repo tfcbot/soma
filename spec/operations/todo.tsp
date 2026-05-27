@@ -52,7 +52,7 @@ interface Todos {
   @operationId("createTodo")
   @summary("Intake a todo")
   @doc("Create a todo in `requested`. The single client write.")
-  create(@body body: CreateTodoRequest): TodoCreated | BadRequestResponse | UnauthorizedResponse;
+  create(@body body: CreateTodoRequest): TodoCreated | BadRequestResponse | UnauthorizedResponse | PaymentRequiredResponse;
 
   @get
   @operationId("listTodos")
@@ -85,12 +85,12 @@ interface Todos {
   @operationId("deliverTodo")
   @summary("Deliver an artifact")
   @doc("Publish a sandbox artifact to the filesystem/CDN, mark delivered, and notify by email.")
-  deliver(@path id: string, @body body: DeliverRequest): Todo | BadRequestResponse | ConflictResponse;
+  deliver(@path id: string, @body body: DeliverRequest): Todo | BadRequestResponse | ConflictResponse | PaymentRequiredResponse;
 
   @post
   @route("/{id}/fund")
   @operationId("fundTodo")
   @summary("Fund a prepaid card")
   @doc("Issue a prepaid card within the todo's budget envelope.")
-  fund(@path id: string, @body body: FundRequest): FundResult | BadRequestResponse | ConflictResponse;
+  fund(@path id: string, @body body: FundRequest): FundResult | BadRequestResponse | ConflictResponse | PaymentRequiredResponse;
 }
