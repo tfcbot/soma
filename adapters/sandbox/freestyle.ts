@@ -1,50 +1,45 @@
-import type { Sandbox, ExecResult } from "../../core/ports/sandbox";
+import type { SandboxPort, Input, Output } from "../../packages/contract/src/index";
 import { Freestyle, type Vm } from "freestyle";
 
-// Real adapter — Freestyle (SDK `freestyle`). A full-Linux VM (install ffmpeg, no 5-min cap).
-// One VM is created lazily and reused; dispose() suspends it. Binary IO via vm.fs.read/writeFile.
-// TODO(SPEC §15): confirm VM CPU/mem/disk limits + pricing (drives unit economics). For git
-// versioning, run git via exec against the mounted workspace (core/services/versioning.ts).
-export class FreestyleSandbox implements Sandbox {
+// Real adapter — Freestyle (full-Linux VM, ffmpeg, no 5-min cap). One VM created lazily + reused.
+// Binary crosses the contract as base64; this adapter bridges base64 ⇄ vendor bytes.
+// TODO(SPEC §5.4): persist the VM per account so exec/getFile across calls share a working tree.
+export class FreestyleSandbox implements SandboxPort {
   private readonly client: Freestyle;
   private vm: Vm | null = null;
-
   constructor(apiKey: string) {
     this.client = new Freestyle({ apiKey });
   }
-
   private async ensureVm(): Promise<Vm> {
     if (this.vm) return this.vm;
     const { vm } = await this.client.vms.create();
     this.vm = vm;
     return vm;
   }
-
-  async exec(command: string): Promise<ExecResult> {
+  async exec(input: Input<"sandboxExec">): Promise<Output<"sandboxExec">> {
     const vm = await this.ensureVm();
-    const r = await vm.exec(command);
+    const r = await vm.exec(input.command);
     return { stdout: r.stdout ?? "", stderr: r.stderr ?? "", exitCode: r.statusCode ?? 0 };
   }
-
-  async putFile(path: string, data: Uint8Array | string): Promise<void> {
+  async putFile(input: Input<"sandboxPutFile">): Promise<Output<"sandboxPutFile">> {
     const vm = await this.ensureVm();
-    await vm.fs.writeFile(path, Buffer.from(data as Uint8Array | string));
+    await vm.fs.writeFile(input.path, Buffer.from(input.data, "base64"));
+    return { path: input.path };
   }
-
-  async getFile(path: string): Promise<Uint8Array | null> {
+  async getFile(input: Input<"sandboxGetFile">): Promise<Output<"sandboxGetFile">> {
     const vm = await this.ensureVm();
     try {
-      const buf = await vm.fs.readFile(path);
-      return new Uint8Array(buf);
+      const buf = await vm.fs.readFile(input.path);
+      return { data: Buffer.from(buf).toString("base64") };
     } catch {
-      return null;
+      return { data: null };
     }
   }
-
-  async dispose(): Promise<void> {
+  async dispose(_input: Input<"sandboxDispose">): Promise<Output<"sandboxDispose">> {
     if (this.vm) {
       await this.vm.suspend();
       this.vm = null;
     }
+    return { ok: true };
   }
 }

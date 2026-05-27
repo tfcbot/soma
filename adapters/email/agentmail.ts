@@ -1,25 +1,12 @@
-import type { Email, EmailAttachment } from "../../core/ports/email";
+import type { EmailPort, Input, Output } from "../../packages/contract/src/index";
 import { AgentMailClient } from "agentmail";
 
-// Real adapter — AgentMail (SDK `agentmail`). Mirrors the proven VidJutsu usage
-// (convex/actions/email.ts). Attachments accept a `url` directly, so a CDN link from the
-// FileSystem primitive attaches without re-encoding.
-export class AgentMail implements Email {
+export class AgentMail implements EmailPort {
   private readonly client: AgentMailClient;
-
-  constructor(
-    apiKey: string,
-    private readonly inboxId: string,
-  ) {
+  constructor(apiKey: string, private readonly inboxId: string) {
     this.client = new AgentMailClient({ apiKey });
   }
-
-  async send(input: {
-    to: string;
-    subject: string;
-    body: string;
-    attachments?: EmailAttachment[];
-  }): Promise<{ id: string }> {
+  async send(input: Input<"emailSend">): Promise<Output<"emailSend">> {
     const res = await this.client.inboxes.messages.send(this.inboxId, {
       to: [input.to],
       subject: input.subject,

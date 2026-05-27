@@ -1,15 +1,8 @@
-import type { FileSystem, WriteResult } from "../../core/ports/filesystem";
-import {
-  S3Client,
-  PutObjectCommand,
-  GetObjectCommand,
-  ListObjectsV2Command,
-} from "@aws-sdk/client-s3";
+import type { FileSystemPort, Input, Output } from "../../packages/contract/src/index";
+import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 
-// Real adapter — Archil disk backed by an R2 bucket (SPEC §16). The bucket and the disk are
-// the same bytes: an object written here is visible on the Archil filesystem the Sandbox
-// mounts, and a public-prefixed object is served by the CDN domain. File IO uses the R2
-// S3 API (mirrors VidJutsu convex/actions/storage.ts); publicUrl is CDN_BASE/key.
+// Real adapter — Archil disk backed by an R2 bucket. Binary crosses the contract as base64;
+// this adapter bridges base64 ⇄ stored bytes. publicUrl is CDN_BASE/key.
 export interface ArchilOptions {
   diskId: string;
   r2AccountId: string;
@@ -18,14 +11,12 @@ export interface ArchilOptions {
   bucket: string;
   cdnBaseUrl: string;
 }
-
 function normalizeKey(path: string): string {
   return path.replace(/^\//, "");
 }
 
-export class ArchilFileSystem implements FileSystem {
+export class ArchilFileSystem implements FileSystemPort {
   private readonly s3: S3Client;
-
   constructor(private readonly opts: ArchilOptions) {
     this.s3 = new S3Client({
       region: "auto",
@@ -33,41 +24,40 @@ export class ArchilFileSystem implements FileSystem {
       credentials: { accessKeyId: opts.r2AccessKeyId, secretAccessKey: opts.r2SecretAccessKey },
     });
   }
-
-  async read(path: string): Promise<Uint8Array | null> {
+  async read(input: Input<"fsRead">): Promise<Output<"fsRead">> {
     try {
       const res = await this.s3.send(
-        new GetObjectCommand({ Bucket: this.opts.bucket, Key: normalizeKey(path) }),
+        new GetObjectCommand({ Bucket: this.opts.bucket, Key: normalizeKey(input.path) }),
       );
-      if (!res.Body) return null;
-      return await (res.Body as { transformToByteArray(): Promise<Uint8Array> }).transformToByteArray();
+      if (!res.Body) return { data: null };
+      const bytes = await (res.Body as { transformToByteArray(): Promise<Uint8Array> }).transformToByteArray();
+      return { data: Buffer.from(bytes).toString("base64") };
     } catch (err) {
       const e = err as { name?: string; $metadata?: { httpStatusCode?: number } };
-      if (e.name === "NoSuchKey" || e.$metadata?.httpStatusCode === 404) return null;
+      if (e.name === "NoSuchKey" || e.$metadata?.httpStatusCode === 404) return { data: null };
       throw err;
     }
   }
-
-  async write(
-    path: string,
-    data: Uint8Array | string,
-    opts?: { public?: boolean },
-  ): Promise<WriteResult> {
-    const Body = typeof data === "string" ? data : Buffer.from(data);
+  async write(input: Input<"fsWrite">): Promise<Output<"fsWrite">> {
     await this.s3.send(
-      new PutObjectCommand({ Bucket: this.opts.bucket, Key: normalizeKey(path), Body }),
+      new PutObjectCommand({
+        Bucket: this.opts.bucket,
+        Key: normalizeKey(input.path),
+        Body: Buffer.from(input.data, "base64"),
+      }),
     );
-    return { path, url: opts?.public ? this.publicUrl(path) : undefined };
+    return { path: input.path, url: input.public ? this.urlFor(input.path) : undefined };
   }
-
-  async list(prefix = ""): Promise<string[]> {
+  async list(input: Input<"fsList">): Promise<Output<"fsList">> {
     const res = await this.s3.send(
-      new ListObjectsV2Command({ Bucket: this.opts.bucket, Prefix: normalizeKey(prefix) }),
+      new ListObjectsV2Command({ Bucket: this.opts.bucket, Prefix: normalizeKey(input.prefix ?? "") }),
     );
-    return (res.Contents ?? []).map((o) => o.Key ?? "").filter((k) => k.length > 0);
+    return { paths: (res.Contents ?? []).map((o) => o.Key ?? "").filter((k) => k.length > 0) };
   }
-
-  publicUrl(path: string): string {
+  async publicUrl(input: Input<"fsPublicUrl">): Promise<Output<"fsPublicUrl">> {
+    return { url: this.urlFor(input.path) };
+  }
+  private urlFor(path: string): string {
     return `${this.opts.cdnBaseUrl.replace(/\/$/, "")}/${normalizeKey(path)}`;
   }
 }

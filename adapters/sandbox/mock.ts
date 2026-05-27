@@ -1,28 +1,26 @@
-import type { Sandbox, ExecResult } from "../../core/ports/sandbox";
+import type { SandboxPort, Input, Output } from "../../packages/contract/src/index";
 
-// Mock + spy. The working tree is module-level so files written in one gateway call are readable
-// in the next (each call builds a fresh adapter); spy fields stay per-instance for unit tests.
-const files = new Map<string, Uint8Array>();
+// Mock + spy. Module-level tree so a file written in one gateway call is readable in the next.
+const files = new Map<string, Buffer>();
 
-export class MockSandbox implements Sandbox {
+export class MockSandbox implements SandboxPort {
   readonly commands: string[] = [];
   disposed = false;
-
-  async exec(command: string): Promise<ExecResult> {
-    this.commands.push(command);
-    return { stdout: `[mock] ran: ${command}`, stderr: "", exitCode: 0 };
+  async exec(input: Input<"sandboxExec">): Promise<Output<"sandboxExec">> {
+    this.commands.push(input.command);
+    return { stdout: `[mock] ran: ${input.command}`, stderr: "", exitCode: 0 };
   }
-
-  async putFile(path: string, data: Uint8Array | string): Promise<void> {
-    files.set(path, typeof data === "string" ? new TextEncoder().encode(data) : data);
+  async putFile(input: Input<"sandboxPutFile">): Promise<Output<"sandboxPutFile">> {
+    files.set(input.path, Buffer.from(input.data, "base64"));
+    return { path: input.path };
   }
-
-  async getFile(path: string): Promise<Uint8Array | null> {
-    return files.get(path) ?? null;
+  async getFile(input: Input<"sandboxGetFile">): Promise<Output<"sandboxGetFile">> {
+    const b = files.get(input.path);
+    return { data: b ? b.toString("base64") : null };
   }
-
-  async dispose(): Promise<void> {
+  async dispose(_input: Input<"sandboxDispose">): Promise<Output<"sandboxDispose">> {
     this.disposed = true;
     files.clear();
+    return { ok: true };
   }
 }

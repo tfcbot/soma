@@ -1,36 +1,26 @@
-import type { Wallet, IssuedCard } from "../../core/ports/wallet";
+import type { WalletPort, Input, Output } from "../../packages/contract/src/index";
 
-// Real adapter — AgentCard (REST, no SDK). Base https://api.agentcard.sh/api/v1, Bearer key.
-// Issues a prepaid card under a fixed cardholder; the prepaid limit is the budget ceiling.
-// NOTE: pan/cvv are sensitive — never log them (see feedback_no_terminal_creds).
+// Real adapter — AgentCard (REST). Prepaid card; the limit is the ceiling.
+// NOTE: pan/cvv are sensitive — never log them (feedback_no_terminal_creds).
 const BASE = "https://api.agentcard.sh/api/v1";
+interface CardDetails { pan: string; cvv: string; expiry: string; spendLimitCents?: number }
 
-interface CardDetails {
-  pan: string;
-  cvv: string;
-  expiry: string;
-  spendLimitCents?: number;
-}
+export class AgentCard implements WalletPort {
+  constructor(private readonly apiKey: string, private readonly cardholderId: string) {}
 
-export class AgentCard implements Wallet {
-  constructor(
-    private readonly apiKey: string,
-    private readonly cardholderId: string,
-  ) {}
-
-  async issueCard(input: { amountCents: number; memo: string }): Promise<IssuedCard> {
+  async issueCard(input: Input<"walletIssueCard">): Promise<Output<"walletIssueCard">> {
     const created = await this.req<{ id: string }>("POST", "/cards", {
       amountCents: input.amountCents,
       cardholderId: this.cardholderId,
     });
-    const details = await this.req<CardDetails>("GET", `/cards/${created.id}/details`);
+    const d = await this.req<CardDetails>("GET", `/cards/${created.id}/details`);
     return {
       id: created.id,
-      pan: details.pan,
-      cvv: details.cvv,
-      expiry: details.expiry,
-      spendLimitCents: details.spendLimitCents ?? input.amountCents,
-      last4: details.pan?.slice(-4),
+      pan: d.pan,
+      cvv: d.cvv,
+      expiry: d.expiry,
+      spendLimitCents: d.spendLimitCents ?? input.amountCents,
+      last4: d.pan?.slice(-4),
     };
   }
 
