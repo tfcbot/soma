@@ -1,4 +1,6 @@
-# Programmable Assistant (codename: Soma)
+# Soma
+
+> A programmable body for an agent's brain. An open, self-hostable template: **clone it, deploy your own, customize the primitives.**
 
 A small, open primitive: **a programmable body for an agent's brain.**
 
@@ -60,6 +62,37 @@ mcp/         dependency-free gateway client for agents
 Key boundary: vendor SDKs need Node, so vendor calls run in `convex/node.ts`; the isolate-runtime
 HTTP layer delegates to them via `ctx.runAction`. Read-only enforcement and scheduling/memory are
 deliberately the *client agent's* job, not the body's (SPEC §9; THESIS).
+
+## Clone & deploy your own
+
+Soma is a **template you own**, not a SaaS you log into. Use it as a GitHub template (or clone
+it), point it at your own infra, swap in the vendors you want, and run your own single-node
+deployment of the body — your agent, your wallet ceiling, your data. Nothing phones home.
+
+```bash
+# 1. Get your own copy — GitHub "Use this template", or:
+git clone https://github.com/tfcbot/soma.git
+cd soma
+bun install
+
+# 2. Run it locally on mocks — no vendor keys, no Convex login:
+bun test                                    # 29 unit tests, vendors mocked
+CONVEX_AGENT_MODE=anonymous bunx convex dev  # local backend on mock adapters
+
+# 3. Make it yours: connect real vendors one at a time (GETTING_STARTED.md),
+#    set GATEWAY_API_KEY, then deploy your own Convex backend.
+```
+
+What you customize:
+
+- **The six primitives** — each is a port with a real adapter + a mock (`adapters/<primitive>/`).
+  Swap a vendor by writing a new adapter against the same port; the contract never changes.
+- **The contract** — add or change endpoints in `spec/` (TypeSpec), then `bun run generate` to
+  regenerate the SDK, CLI, and MCP server from the spec.
+- **The deployment** — single-node Convex (SPEC §12). Bring your own keys; you own the deployment.
+
+The CLI installer (`packages/cli/install.sh`) pulls binaries from this repo's GitHub Releases.
+If you redistribute your own build, change `REPO=` in that script to your fork.
 
 ## Quickstart
 
