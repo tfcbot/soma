@@ -6,48 +6,52 @@ implement-anywhere contract lives in [SPEC.md](./SPEC.md), and a concrete walkth
 
 ---
 
-## 1. The idea: a body for an agent's brain
+## 1. The idea: your AI brain needs a workstation
 
-There is a small, fixed set of primitives that turn a language model into something that can
-operate in the world on someone's behalf: a **phone**, an **email**, a **wallet**, a
-**computer**, and **storage**. Bundle those behind a metered gateway and an agent has a
-*complete loop* — it can be briefed, do the work, pay for tools, keep its outputs, and report
-back — without ever borrowing the principal's own card, phone, email, or machine. Tracking and
-coordinating the work is the agent brain's job, not the body's.
+A language model can think, plan, and decide. What it cannot do is *act in the world* — it has
+no phone to reach people, no card to pay, no machine to run code on, no place to keep files, no
+inbox. A brilliant worker with no desk gets nothing done.
+
+A **workstation** is the equipped place an agent works: a small, fixed set of tools — **phone**,
+**email**, **wallet**, **computer**, **storage** — behind one metered gateway. Together they give
+an agent a *complete loop*: be briefed, do the work, pay for what it needs, keep its outputs, and
+report back — without ever borrowing the principal's own card, phone, email, or machine. The
+agent coordinates its own work; the workstation supplies the tools and meters their use.
 
 | | What it is | Who owns it |
 |---|---|---|
-| **Workstation** (the body) | the primitives | provided/hosted; headless |
-| **Agent** (the brain) | the LLM loop, reasoning, data connections | the principal (bring your own) |
+| **Workstation** | the tools + the metered gateway — where work happens | provided/hosted; headless |
+| **Agent (the brain)** | the LLM loop, reasoning, judgment, task-tracking | the principal (bring your own) |
 
-We open-source **the body**. You bring **the brain**. The principal already has an agent —
+We open-source **the workstation**. You bring **the brain**. The principal already has an agent —
 Claude Code, Claude for cowork, whatever they live in. We don't ask them to adopt ours or
-reconfigure theirs; we hand their agent one opinionated API onto a body it can drive. Most
-products try to *be* the agent. This one refuses to. It is the body the agent borrows.
+reconfigure theirs; we hand their agent one opinionated API: a workstation it can sit down at.
+Most products try to *be* the agent. This one refuses to — it's the workstation the agent works
+from.
 
 ## 2. None of this is new — and that's the point
 
-The body/brain split is just **separation of concerns**, **stable interfaces**, and
-**dependency inversion** — decades-old engineering principles, applied to a place that
-currently ignores them: the agent itself.
+The brain/workstation split is just **separation of concerns**, **stable interfaces**, and
+**dependency inversion** — decades-old engineering principles, applied to a place that currently
+ignores them: the agent itself.
 
 Dependency inversion says high-level policy should not depend on low-level detail; both should
 depend on a **stable abstraction**:
 
-- The **agent (brain)** is high-churn and volatile. Models are replaced on a monthly cadence;
-  the agent you build on today is obsolete within a release or two.
-- The **operating layer (body)** is the stable abstraction. It changes additively and on its
-  own schedule, not the model vendors'.
+- The **agent (brain)** is high-churn and volatile. Models are replaced on a monthly cadence; the
+  agent you build on today is obsolete within a release or two.
+- The **workstation** (the operating layer) is the stable abstraction. It changes additively and
+  on its own schedule, not the model vendors'.
 
-So we invert the dependency: **the volatile agent depends on the durable contract, never the
+So we invert the dependency: **the volatile brain depends on the durable contract, never the
 reverse.** That is the entire reason the split is worth drawing.
 
-## 3. Why "raw API + skills" rots, and a durable backend doesn't
+## 3. Why "raw API + skills" rots, and a durable workstation doesn't
 
-The prevailing pattern today — Claude Code, Codex, OpenClaw et al. driving **raw vendor APIs
-plus skills/prompts** — produces *cheap, ephemeral software*. Fast to stand up, genuinely
-useful. But the capability lives **inside the agent layer**, in prompts and glue the agent
-re-derives at runtime. Two compounding costs:
+The prevailing pattern today — Claude Code, Codex, OpenClaw et al. driving **raw vendor APIs plus
+skills/prompts** — produces *cheap, ephemeral software*. Fast to stand up, genuinely useful. But
+the capability lives **inside the agent layer**, in prompts and glue the agent re-derives at
+runtime. Two compounding costs:
 
 1. **It's expensive to keep rewriting.** Logic in prompts/skills gets re-implemented and re-run
    constantly — you **blow tokens** re-establishing the same plumbing every session instead of
@@ -57,86 +61,87 @@ re-derives at runtime. Two compounding costs:
    everything baked into the old agent layer has to be ported. The investment was in the
    **disposable** layer, so it's thrown away with it.
 
-A durable backend flips this. Capability lives in the **contract**, not in any one agent. When
-a new agent appears, you don't migrate — you **re-point**:
+A durable workstation flips this. Capability lives in the **contract**, not in any one agent.
+When a new agent appears, you don't migrate — you **re-point**:
 
 ```
-      ephemeral (raw API + skills)              durable (operating layer)
+      ephemeral (raw API + skills)              durable (the workstation)
       ────────────────────────────             ──────────────────────────
 2025   Claude Code ─┐                           Claude Code ─┐
                      ├─ glue lives IN the                     │
 2026   Codex ───────┤   agent; replace the       Codex ──────┤
-                     │   agent → rewrite          OpenClaw ───┼──► Personal API
+                     │   agent → rewrite          OpenClaw ───┼──► Workstation
 2027   OpenClaw ────┤   everything                            │    (stays put;
-                     │                            future ─────┘     glue lives HERE)
+                     │                            future ─────┘     tools live HERE)
 2028   new model ───┘                            model
        each switch = re-implement + re-spend     each switch = change one endpoint URL
 ```
 
-The contract, the wallet, the storage history, the `/todo` loop, the procurement glue all
-persist across agent generations. Agent obsolescence becomes a URL change instead of a rewrite.
-This is also the honest version of "no lock-in": because we operate no agents and expose only a
-contract, the principal is never married to a model vendor *or* to us — the same open interface
-runs on a self-hosted core.
+The contract, the wallet, the stored files, the usage history, the procurement glue all persist
+across agent generations. Agent obsolescence becomes a URL change instead of a rewrite. This is
+also the honest version of "no lock-in": because we operate no agents and expose only a contract,
+the principal is never married to a model vendor *or* to us — the same open interface runs on a
+self-hosted workstation.
 
 ## 4. The durable layer is two-faced — and deterministic in the middle
 
-The contract has two faces. The consumer side: the client's agent points at it. The maintainer
-side: an agent, supervised by a human operator, **builds and maintains the layer itself.**
+The contract has two faces. The consumer side: the client's agent works at it. The maintainer
+side: an agent, supervised by a human operator, **builds and maintains the workstation itself.**
 
 ```
-   CONSUMER SIDE                  DURABLE LAYER                MAINTAINER SIDE
-   (the principal)                (deterministic)              (the provider)
+   CONSUMER SIDE                  THE WORKSTATION              MAINTAINER SIDE
+   (the principal)                (deterministic gateway)      (the provider)
 
-   customer  ⇄  agent  ──────►  [ serverless API ]  ◄──────  infra  ◄──  agent  ⇄  operator
-   (client²)   (brain)             the contract                          (brain)    (human)
+   customer  ⇄  agent  ──────►  [ metered contract ]  ◄──────  infra  ◄──  agent  ⇄  operator
+   (client²)   (brain)            auth · credits · events                   (brain)    (human)
 ```
 
-Two agents, one contract between them. The principal's agent **drives** the layer; the
-operator's agent **owns making the updates** — extending primitives, hardening adapters,
-re-provisioning the VM — under human oversight. The maintenance that was a permanent tax in the
-VPS world is now *itself* done by an agent, with the human as supervisor rather than keyboard
-operator.
+Two agents, one contract between them. The principal's agent **works at** the workstation; the
+operator's agent **owns making the updates** — adding tools, hardening adapters, re-provisioning
+the sandbox — under human oversight. The maintenance that was a permanent tax in the VPS world is
+now *itself* done by an agent, with the human as supervisor rather than keyboard operator.
 
 > Note the double meaning of **client**: the *client* in the computer-science sense (the calling
 > agent) **and** the *client* in the customer sense (the human paying). The contract serves both
 > at once, which is why a clean one matters.
 
-**Why a deterministic, serverless middle solves a class of bugs.** LLM agents are
-**stochastic**. If business-critical logic (state transitions, budget ceilings, billing) lives
-*inside* an agent, the whole system inherits that non-determinism — it can't be reliably tested,
-reproduced, or trusted. Moving that logic into a **deterministic serverless layer** (pure
-functions + an explicit state machine, the `/todo` lifecycle) makes it reproducible and
-testable. The agents become *orchestrators of* a deterministic core, never the core itself. The
-deterministic middle is the **firebreak** that absorbs non-determinism on both ends.
+**Why a deterministic middle solves a class of bugs.** LLM agents are **stochastic**. If
+business-critical logic — who you are (accounts), what a call costs (the credit ledger), whether
+you may make it (metering and rate limits) — lived *inside* an agent, the whole system would
+inherit that non-determinism: untestable, irreproducible, untrustworthy. The workstation's
+gateway puts that logic in a **deterministic** layer (pure functions + a transactional ledger).
+Agents become *callers of* a deterministic core, never the core itself. That gateway is the
+**firebreak** that absorbs non-determinism on both ends — and, deliberately, it holds no workflow
+or task state: sequencing the work is the brain's job, not the workstation's.
 
 ## 5. Granular cost control: token spend and tooling spend
 
 The same split that buys determinism buys **fine-grained cost control** on both axes that cost
 money.
 
-**Token spend (agent axis).** When work lives in the agent loop, *everything* is paid in tokens
-— including deterministic plumbing the agent re-derives each session. Pushing that behind the
+**Token spend (agent axis).** When work lives in the agent loop, *everything* is paid in tokens —
+including deterministic plumbing the agent re-derives each session. Pushing that behind the
 contract turns it into cheap fixed-cost API calls, and reserves the model for judgment. That
-unlocks: **right-sizing the brain** (a cheaper agent can call `POST /todo`), **no re-spend on
-repeat work** (deterministic functions are cacheable), and **spend where the leverage is**.
+unlocks **right-sizing the brain** (a cheaper agent can call the workstation), **no re-spend on
+repeat work**, and **spend where the leverage is**.
 
 **Tooling spend (wallet axis).** Every external cost routes through the wallet — and because it
-routes through *the contract*, each charge is a **metered event** attributable to a specific
-`/todo` and primitive call, not a monthly lump. Budget ceilings are enforced **deterministically
-in code** (a hard stop) rather than by asking the agent to stay under budget.
+routes through *the contract*, each charge is a **metered event** attributable to a specific call,
+not a monthly lump. Two ceilings hold spend deterministically in code, never by asking the agent
+to behave: the per-call **credit** debit (the caller pays per use) and the wallet's **prepaid card
+limit** (the agent's hard cap on vendor spend).
 
 ```
-WHERE THE COST LANDS            opaque agent loop          behind the contract
+WHERE THE COST LANDS            opaque agent loop          at the workstation
 ────────────────────           ─────────────────          ───────────────────
 deterministic plumbing         paid in tokens, re-run      fixed-cost API call, cacheable
 model reasoning                paid in tokens              paid in tokens (unchanged — fine)
-external tooling               opaque monthly invoice      metered per todo / primitive
-budget ceiling                 "agent, stay under $X"      hard stop enforced in code
+external tooling               opaque monthly invoice      metered per call (the event ledger)
+spend ceiling                  "agent, stay under $X"      hard stop in code (credits + prepaid card)
 attribution granularity        one bill                    per-call line items
 ```
 
-## 6. The abstraction ladder: from VPS to a personal API
+## 6. The abstraction ladder: from VPS to a personal workstation
 
 We move the client **up one rung** — from owning a *server* to owning a *contract*.
 
@@ -146,27 +151,27 @@ We move the client **up one rung** — from owning a *server* to owning a *contr
           (raw)       (OS, deps, drift)      is the default
   Rung 1  Managed     someone else runs it   YES — still a    a provider, but the client
           VPS         but it's a *server*    server           still owns a server-shaped thing
-  Rung 2  Personal    the client owns a      NO — a contract  the client's AGENT, zero ops
-   ◄ HERE  API        *contract* their         is versioned,
-                      agent calls               not maintained
+  Rung 2  The         the client owns a      NO — a contract  the client's AGENT, zero ops
+   ◄ HERE  Workstation *contract* its          is versioned,
+                      agent works at            not maintained
 ```
 
 **Why a contract beats a server: entropy.** A VPS is a stateful, mutable system, and every such
 system degrades — packages drift, certs expire, someone SSHes in and changes something
-undocumented. Maintenance is a *permanent tax* that only goes up. An API is a **contract**, not
-a running thing the client holds:
+undocumented. Maintenance is a *permanent tax* that only goes up. The workstation is a
+**contract**, not a running thing the client holds:
 
-| | VPS (a server) | Personal API (a contract) |
+| | VPS (a server) | The workstation (a contract) |
 |---|---|---|
 | Default trajectory | **degrades** | **stable** until versioned |
 | Maintenance | a permanent tax on the *owner* | the *provider's* problem, behind the interface |
 | Change management | mutate in place, hope | additive endpoints + explicit versioning |
 | What the client reasons about | OS, deps, disk, uptime | request → response, and a webhook |
-| Observability | "can you screen-share?" | the provider peers into the sandbox |
+| Observability | "can you screen-share?" | the provider peers into the sandbox + event ledger |
 
-The mutable, rotting part still exists — the VM, the disk — but it's now **behind** the
-contract, on the provider's side, re-provisioned from clean state at will (the VM is cattle, not
-a pet). The client never owns the part that degrades.
+The mutable, rotting part still exists — the sandbox VM, the disk — but it's now **behind** the
+contract, on the provider's side, re-provisioned from clean state at will (the VM is cattle, not a
+pet). The client never owns the part that degrades.
 
 ## 7. The pattern: Backend-for-Frontend → Backend-for-Agent
 
@@ -180,48 +185,48 @@ frontend consumes things. Swap "frontend" for "agent":
      │  one tuned surface                     │  one opinionated API
      ▼                                        ▼
   ┌─────────┐                              ┌──────────────────────────┐
-  │  BFF    │  shapes & aggregates         │  Personal API (the body) │  shapes vendors into
+  │  BFF    │  shapes & aggregates         │   The Workstation        │  shapes vendors into
   └─────────┘                              └──────────────────────────┘  one agent-shaped contract
      ├─► auth service                         ├─► phone, email, wallet
-     ├─► orders service                       ├─► sandbox (compute)
-     └─► payments service                     ├─► filesystem (storage)
-                                              └─► todo (derived state)
+     ├─► orders service                       ├─► computer (sandbox)
+     └─► payments service                     ├─► storage (filesystem)
+                                              └─► metered gateway (accounts, credits, events)
 ```
 
-The agent never orchestrates vendors directly, the same way a good web frontend never
-orchestrates microservices directly.
+The agent never orchestrates vendors directly, the same way a good web frontend never orchestrates
+microservices directly.
 
 ## 8. Event-driven + hexagonal: how the contract holds
 
 Two commitments keep the contract stable while the messy parts churn:
 
-- **Hexagonal (ports & adapters).** The contract is the *port*; each vendor is a swappable
-  *adapter*. Swapping a phone vendor or re-provisioning the VM changes an adapter — never the
-  contract the agent depends on.
-- **Event-driven.** The agent doesn't poll-and-wait. It **pushes** intent (`POST /todo`); the
-  system **emits events** as state changes, fanning out as webhooks to the principal's channels.
-  Pull (`GET /todo`) and push (state-change → webhook) are the only two interaction patterns.
+- **Hexagonal (ports & adapters).** Each tool is a *port*; each vendor is a swappable *adapter*.
+  Swapping a phone vendor or re-provisioning the sandbox changes an adapter — never the contract
+  the agent depends on. Adding a tool is a new port + adapter, additively.
+- **Event-driven.** The agent calls a tool; the gateway records a **usage event** and may fan it
+  out as a webhook to the principal's channels. Pull (`GET`) and push (event → webhook) are the
+  only two interaction patterns, and the event ledger is the workstation's unit of observability.
 
 ## 9. Unrestricted, but sandboxed — and that's the deal
 
-The agent's computer is **unrestricted** (it can run anything) precisely because it is
-**sandboxed**: an isolated VM, a wallet with a hard prepaid ceiling, no access to the
-principal's real accounts. The blast radius is contained, so the principal can hand over a
-complete loop comfortably. And because the provider controls the sandbox, they can **peer in** —
-computer, storage, conversation history, API calls all visible. Troubleshooting is "look at the
-sandbox," not "ask the client to screen-share." That's what makes QA-and-maintenance cheap
-enough to take off the client's hands.
+The computer at the workstation is **unrestricted** (it can run anything) precisely because it is
+**sandboxed**: an isolated VM, a wallet with a hard prepaid ceiling, no access to the principal's
+real accounts. The blast radius is contained, so the principal can hand over a complete loop
+comfortably. And because the provider controls the sandbox, they can **peer in** — computer,
+storage, the event ledger, the API calls all visible. Troubleshooting is "look at the workstation,"
+not "ask the client to screen-share." That's what makes QA-and-maintenance cheap enough to take off
+the client's hands.
 
 ## 10. The service model and the Agent Success Manager
 
-The product is not software the principal logs into; it's **work delivered into a body the
-principal's agent can observe and direct.** It is, in effect, **SaaS with no dashboard and no
-account** — the provider hands new primitives to the client's agent. The rules:
+The product is not software the principal logs into; it's **a workstation the principal's agent
+works at, which the principal can observe and direct.** It is, in effect, **SaaS with no dashboard
+and no account to manage** — the provider hands new tools to the client's agent. The rules:
 
 1. The principal must have an agent. We plug into it; we don't replace it.
 2. The principal owns their data and connections.
 3. We expose an opinionated API, not a configuration burden.
-4. Primitives are deployed on their behalf; the principal manages no vendors.
+4. Tools are deployed on their behalf; the principal manages no vendors.
 
 The front-of-house reframe:
 
@@ -229,24 +234,23 @@ The front-of-house reframe:
 > narrow interface whose only job is to surface deliverables, progress, and issues to the
 > principal's agent.
 
-Production, QA, and procurement happen behind it. The principal's only obligations are **approve
-budgets** and **load the wallet**.
+Production, QA, and procurement happen behind it. The principal's only obligations are **fund the
+workstation** (credits) and **load the wallet**.
 
 ## 11. The target user
 
-Not a technical buyer. A high-level executive who lives in Claude and wants to interface by
-phone or email, have their agent do the low-level computer/storage work, and own none of the
-plumbing — no VPS, no API keys, no vendor accounts, not even their own card/phone/email plugged
-in. They're fine with unrestricted compute *because it's sandboxed*. All they care about is the
-deliverable.
+Not a technical buyer. A high-level executive who lives in Claude and wants to interface by phone
+or email, have their agent do the low-level computer/storage work, and own none of the plumbing —
+no VPS, no API keys, no vendor accounts, not even their own card/phone/email plugged in. They're
+fine with unrestricted compute *because it's sandboxed*. All they care about is the deliverable.
 
 ## 12. Open vs. hosted
 
-- **Open:** the protocol — the primitives, the `/todo` loop, the body/brain split, the budget
-  envelope, the read-only boundary, extensibility (see [SPEC.md](./SPEC.md)).
-- **Hosted (reference implementation):** a provider wiring real adapters and running an agency
-  (team + ASM) on top. The open spec is the credibility and moat-by-adoption; the hosted service
-  is the proof.
+- **Open:** the protocol — the tools, the metered gateway (per-key accounts, credits, rate limits,
+  the event ledger), the brain/workstation split, and extensibility (see [SPEC.md](./SPEC.md)).
+- **Hosted (reference implementation):** a provider wiring real adapters and running an operation
+  (team + ASM) on top. The open spec is the credibility and moat-by-adoption; the hosted service is
+  the proof.
 
 ## 13. Open questions & risks
 
@@ -254,8 +258,8 @@ deliverable.
   confirm before pricing an offer.
 - **Wallet authorization + KYC/ToS** — autonomous signup may violate some vendors' terms; gate
   behind explicit authorization and per-vendor judgment.
-- **Read-only enforcement at scale** — single-node needs none; multi-tenant needs a server-side
-  boundary (e.g. Freestyle-Git clone-only identities).
+- **Sandbox sessions at scale** — a workstation's sandbox should persist across calls per account;
+  multi-tenant needs isolation between principals' VMs and files.
 - **Channel media limits** — embedding video in SMS/iMessage vs. delivering by email attachment.
-- **Offer pricing** — a low entry price can't fund a human service team; treat the subscription
-  as the *body + interface* and bill production as budgeted engagements through the wallet.
+- **Pricing** — price workstation access (credits) so it funds the operation, and bill heavy
+  production as budgeted vendor spend through the wallet.
