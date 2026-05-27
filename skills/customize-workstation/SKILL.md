@@ -86,6 +86,10 @@ Move from local mocks to a hosted, metered deployment. State what each step *req
    ```
    - Scopes: `"*"`, `"<port>:*"`, or `"<port>:<method>"`; empty = full access; out-of-scope → 403.
    - Top up later: `accounts:grantCredits '{"accountId":"acc_…","amountCents":N}'`. Exhausted → 402.
+   - **Self-serve top-ups (Stripe, shipped):** set `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET`,
+     add a Stripe webhook to `https://<deploy>.convex.site/webhooks/stripe` → clients call
+     `POST /v1/topup {amountCents}` to get a Checkout URL; payment credits them via grantCredits.
+     (Swap rails by replacing `convex/payments.ts`.)
    - Optional abuse cap: `WORKSTATION_RATE_LIMIT_PER_MIN`; 402 top-up link: `WORKSTATION_TOPUP_URL`.
 4. **Smoke test live & hand off:** call with a client key against the cloud URL; confirm metered
    debit, `402` when out of credits, `403` out of scope. Commit + push config to their repo.

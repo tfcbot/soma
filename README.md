@@ -102,17 +102,18 @@ credit cost in the contract registry `packages/contract/src/operations.ts` (0 = 
 balance; billable calls debit it, and an empty balance returns `402` with a `topupUrl` and a
 `WWW-Authenticate: Payment` header (agent-native — an x402/MPP agent can settle inline).
 
-You bring the rail. To add credits, call the funding seam:
+**Stripe is the shipped reference rail.** Set `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` and the
+gateway exposes `POST /v1/topup` (a Stripe Checkout session — the URL a `402` points at) plus a
+signature-verified `POST /webhooks/stripe` that credits the account on payment. It's wired behind
+one vendor-neutral seam, so you can swap rails by replacing `convex/payments.ts`:
 
 ```bash
+# the seam every rail calls (also a manual top-up / scheduled grant):
 bunx convex run accounts:grantCredits '{"accountId":"acc_…","amountCents":5000}'
 ```
 
-Wire that to whatever you like — a manual top-up, a scheduled monthly grant, or a payment
-webhook. For a full Stripe lifecycle, drop in [`@convex-dev/stripe`](https://www.convex.dev/components/stripe)
-and call `grantCredits` from its `checkout.session.completed` handler; point `WORKSTATION_TOPUP_URL`
-at your checkout. Optional abuse protection: set `WORKSTATION_RATE_LIMIT_PER_MIN` (per account, per
-operation) to get `429 + Retry-After`. None of this is on by default.
+Optional abuse protection: set `WORKSTATION_RATE_LIMIT_PER_MIN` (per account, per operation) for
+`429 + Retry-After`. Metering and top-ups are off until you set per-op costs and the Stripe keys.
 
 ## Extending the gateway (type-safe)
 

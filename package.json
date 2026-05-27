@@ -19,6 +19,7 @@
     "agentmail": "^0.5.3",
     "convex": "^1.31.0",
     "freestyle": "0.1.52",
+    "stripe": "^22.2.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

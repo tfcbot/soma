@@ -1,4 +1,4 @@
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import type { ActionCtx } from "./_generated/server";
 import type { Account } from "./auth";
 import type { Input } from "../packages/contract/src/index";
@@ -20,4 +20,9 @@ export const gatewayHandlers: Record<
       limit: (input as Input<"listEvents">).limit,
     }),
   }),
+  createTopup: async (ctx, account, input) =>
+    ctx.runAction(internal.payments.createTopupCheckout, {
+      accountId: account.accountId,
+      amountCents: (input as Input<"createTopup">).amountCents,
+    }),
 };

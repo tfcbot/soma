@@ -1,5 +1,10 @@
 {
   "node": {
-    "externalPackages": ["agentmail", "freestyle", "@aws-sdk/client-s3"]
+    "externalPackages": [
+      "agentmail",
+      "freestyle",
+      "@aws-sdk/client-s3",
+      "stripe"
+    ]
   }
 }

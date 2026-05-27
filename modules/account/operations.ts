@@ -12,4 +12,9 @@ export const ops = {
     input: z.object({ limit: z.coerce.number().optional() }),
     output: z.object({ events: z.array(event) }), costCents: 0,
     summary: "List the calling key's recent usage events", serve: { gateway: true } }),
+  // Create a Stripe Checkout session to top up THIS key's credits (the topupUrl a 402 points at).
+  createTopup: op({ method: "POST", path: "/v1/topup", inputFrom: "body",
+    input: z.object({ amountCents: z.number() }),
+    output: z.object({ url: z.string() }), costCents: 0,
+    summary: "Create a Stripe checkout to top up credits", serve: { gateway: true } }),
 };

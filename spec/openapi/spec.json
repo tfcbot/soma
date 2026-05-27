@@ -774,6 +774,60 @@
           }
         }
       }
+    },
+    "/v1/topup": {
+      "post": {
+        "summary": "Create a Stripe checkout to top up credits",
+        "operationId": "createTopup",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amountCents": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "amountCents"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "url"
+                  ]
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required (metered key out of credits)"
+          },
+          "429": {
+            "description": "Too Many Requests (rate limited)"
+          }
+        }
+      }
     }
   }
 }

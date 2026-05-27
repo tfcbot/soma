@@ -186,6 +186,11 @@ agent-native x402 / MPP settlement, a subscription-style monthly grant, or a man
 Provider's choice and out of scope here. A conforming implementation MUST expose a way to add
 credits to an account and MUST NOT make that path reachable by the spending caller itself.
 
+The reference implementation ships **Stripe** as that rail (informative): a `POST /v1/topup`
+Checkout op and a signature-verified `POST /webhooks/stripe` handler that calls the grantCredits
+seam on `checkout.session.completed`. It is env-gated (`STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET`)
+and swappable — the protocol stays rail-neutral.
+
 ### 7.4 Rate limiting (abuse protection)
 Independently of credits, a Provider MAY rate-limit calls to protect against abuse. The reference
 implementation ships a fixed-window framework (per `(account, operation)` per minute) that is

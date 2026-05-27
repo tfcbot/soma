@@ -18,7 +18,7 @@ packages/contract/src/ op.ts (the op() helper), schemas.ts (shared Base64), and 
 convex/  gateway.ts         builds every route from the registry (auth→429→402→dispatch→event)
          invoke.ts          ONE generic node action — calls the right port adapter method
          ports.ts           buildPorts(env) — aggregates each module's server.ts factory
-         gatewayHandlers.ts the few DB-backed ops (balance, events)
+         gatewayHandlers.ts the few DB-backed ops (balance, events, topup)
          accounts.ts / ratelimit.ts / events.ts / auth.ts / http.ts / schema.ts
 packages/{sdk,cli,mcp}/  derived from the contract (no codegen)
 ```
@@ -61,6 +61,10 @@ The Convex bundler can't resolve the workspace package name, so:
 - **Convex host** (`convex/*`): `import … from "../packages/contract/src/index"`; modules via `../modules/...`.
 - **Inside a module**: import `op`/`Base64` from `../../packages/contract/src/...`; adapters import the
   port interface from `./operations` (the same folder).
+
+## Payments (reference rail)
+
+Stripe is the shipped reference rail in `convex/payments.ts` (raw `stripe` SDK, node): a `createTopupCheckout` action behind the `POST /v1/topup` gateway op, and a signature-verified `handleStripeWebhook` (wired at `/webhooks/stripe` in `http.ts`) that calls `accounts:grantCredits` on payment. Env-gated on `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET`. Swap rails = replace this one file.
 
 ## Per-op policy & the middleware pipeline
 
