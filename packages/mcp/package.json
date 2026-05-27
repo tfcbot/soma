@@ -1,7 +1,7 @@
 {
   "name": "soma-mcp",
   "version": "0.1.0",
-  "description": "Soma MCP server — exposes the Programmable Assistant primitives as MCP tools for any agent.",
+  "description": "Soma MCP server — exposes the faculties as MCP tools for any agent.",
   "type": "module",
   "bin": {
     "soma-mcp": "./dist/index.mjs"

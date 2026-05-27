@@ -2,7 +2,7 @@
   "name": "programmable-assistant",
   "version": "0.1.0",
   "private": true,
-  "description": "Soma — a programmable body for an agent's brain. Six primitives (phone, email, wallet, computer, storage, todo) behind one opinionated API.",
+  "description": "Soma — a headless contract for agents that do work: five faculties (phone, email, wallet, computer, storage) behind one metered gateway.",
   "type": "module",
   "workspaces": [
     "packages/*"

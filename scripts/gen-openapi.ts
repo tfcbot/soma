@@ -36,7 +36,7 @@ for (const [opId, op] of Object.entries(operations)) {
 
 const doc = new OpenApiGeneratorV3(registry.definitions).generateDocument({
   openapi: "3.0.3",
-  info: { title: "Soma — Programmable Assistant", version: "0.1.0" },
+  info: { title: "Soma", version: "0.1.0" },
   servers: [{ url: "https://api.soma.example" }],
 });
 

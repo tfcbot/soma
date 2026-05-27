@@ -1,7 +1,7 @@
 {
   "name": "soma",
   "version": "0.1.0",
-  "description": "Soma — a programmable body for an agent's brain. Typed SDK for the Programmable Assistant API.",
+  "description": "Soma — a headless contract for agents that do work. Typed SDK, inferred from the contract registry.",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",

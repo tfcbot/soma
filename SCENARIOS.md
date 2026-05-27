@@ -17,7 +17,7 @@ agent (the brain), never in the body.
 - **Maya** — founder of a DTC sleep-supplement brand. She lives in Claude and uses her own agent
   for everything. She does not want to own ad production: she briefs, and she receives.
 - **Lumen** — a new-style creative agency. It sells neither dashboards nor hourly design. It
-  provisions a programmable assistant per client and owns the agent (and its QA) that drives it.
+  provisions an assistant per client and owns the agent (and its QA) that drives it.
 - **Soma** — the headless platform: five faculties behind one metered gateway. It operates no
   agents; Lumen runs on top of it.
 
