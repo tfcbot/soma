@@ -25,9 +25,11 @@ supplies the tools and meters their use.
 We open-source **the workstation**. You bring **the brain**. The principal already has an agent —
 Claude Code, Claude for cowork, whatever they live in. We don't ask them to adopt ours or
 reconfigure theirs; we hand their agent one opinionated API: a workstation it can sit down at.
-Most products try to *be* the agent. This one refuses to — it's the workstation the agent works
-from. You can run one for your own agent, or operate Workstations that other people's agents work
-at; the metered gateway is built for both.
+Workstation doesn't try to *be* the client's brain — that orchestrating agent stays theirs.
+What lives *behind* an operator's endpoint is the operator's call: a deterministic pipeline, an LLM
+call, or a full agent loop — the contract is the interface, the implementation is theirs. You can
+run a Workstation for your own agent, or operate one as a paid service that other people's agents
+call; the metered gateway is built for both.
 
 ## 2. None of this is new — and that's the point
 
@@ -79,9 +81,9 @@ When a new agent appears, you don't migrate — you **re-point**:
 
 The contract, the credit balance, the stored files, the usage history, the procurement glue all persist
 across agent generations. Agent obsolescence becomes a URL change instead of a rewrite. This is
-also the honest version of "no lock-in": because we operate no agents and expose only a contract,
-the principal is never married to a model vendor *or* to us — the same open interface runs on a
-self-hosted workstation.
+also the honest version of "no lock-in": because we don't own the principal's orchestrating agent
+and expose only a contract, the principal is never married to a model vendor *or* to us — the same
+open interface runs on a self-hosted workstation.
 
 ## 4. The durable layer is two-faced — and deterministic in the middle
 

@@ -17,9 +17,11 @@ Workstation is a headless backend that exposes a
 fixed set of **primitives** — phone, email, sandbox (compute), and filesystem (storage) —
 **directly** through one **gateway**: an API-key-gated, metered, observable HTTP contract. An
 external **Agent** (the brain, brought by the caller) calls the primitives to accomplish work and
-**coordinates that work itself**. The platform operates no agents; it serves the contract. A
-conforming implementation lets any agent reach people, pay for tooling, run code, and persist
-deliverables — a complete loop — without the caller's own credentials, and meters each call.
+**coordinates that work itself**. The platform does not own that orchestrating Agent; it serves
+the contract. (What an implementation places *behind* a contract endpoint — a deterministic
+pipeline, a single LLM call, or an internal agent loop — is unconstrained by this spec.) A
+conforming implementation lets any agent reach people, run code, and persist deliverables — a
+complete loop — without the caller's own credentials, and meters each call.
 
 Workstation is **not** a task manager: tracking and sequencing work is the Agent's job, not the
 workstation's. The workstation's durable contribution is the **gateway** — identity (per-key accounts), metering
