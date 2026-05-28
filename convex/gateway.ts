@@ -12,9 +12,11 @@ import { runPipeline, type Middleware, type GwRequest } from "./middleware";
 // Adding an op never touches this file; adding a new concern = one more middleware.
 
 function topupUrl(accountId: string): string {
-  // WORKSTATION_LANDING_URL = operator's deployed apps/web (where they wire a topup CTA);
-  // falls back to the deprecated WORKSTATION_TOPUP_URL so existing deployments don't break.
+  // WORKSTATION_BASE_URL = operator's deployed front door (where they wire a topup CTA);
+  // falls back to the prior WORKSTATION_LANDING_URL / WORKSTATION_TOPUP_URL names so existing
+  // deployments don't break on pull.
   const base =
+    process.env.WORKSTATION_BASE_URL ??
     process.env.WORKSTATION_LANDING_URL ??
     process.env.WORKSTATION_TOPUP_URL ??
     "https://workstation.example";
