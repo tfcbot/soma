@@ -64,6 +64,9 @@ convex/      the host / gateway
   payments.ts         "use node" — Stripe reference rail (top-ups + self-serve signup)
   accounts.ts / claims.ts / topups.ts / events.ts / ratelimit.ts / auth.ts / http.ts
 packages/{sdk,cli,mcp}/  all derived from packages/contract (no codegen — shared types)
+apps/web/    Next.js front door — landing + /success + /cancel; deploys to Vercel
+docs/        Mintlify scaffold — guides + API Reference auto-rendered from the contract
+vercel.json  Vercel build config (points at apps/web)
 ```
 
 Key boundary: vendor SDKs need Node, so vendor calls run in a `"use node"` runtime — the generic
@@ -87,14 +90,22 @@ bun install
 bun test                                    # 11 unit tests, vendors mocked
 CONVEX_AGENT_MODE=anonymous bunx convex dev  # local backend on mock adapters
 
-# 3. Make it yours: connect real vendors one at a time (GETTING_STARTED.md),
-#    mint a key (bunx convex run accounts:mintKey), then deploy your own Convex backend.
+# 3. Make it yours: connect real vendors (GETTING_STARTED.md), mint a key
+#    (bunx convex run accounts:mintKey), and ship the full front door:
+#      - Convex backend       (bunx convex deploy)
+#      - apps/web landing     (bunx vercel --prod  → set WORKSTATION_BASE_URL)
+#      - docs/ on Mintlify    (point the Mintlify GitHub app at docs/)
+#    The 6-step walkthrough lives in skills/customize-workstation.
 ```
 
 What you customize:
 
 - **The four primitives** — each is a capability folder with a real adapter + a mock (`modules/<primitive>/`).
   Swap a vendor by writing a new adapter against the same port; the contract never changes.
+- **The front door** — `apps/web/` (landing + `/success` + `/cancel`) and `docs/` (Mintlify) ship as
+  empty-shell scaffolds the operator brands. The docs auto-render the API Reference from the same
+  contract the gateway serves — `bun run generate` writes the spec to both `spec/openapi/` and
+  `docs/openapi/` in one pass.
 - **The contract** — add or change operations in `packages/contract` (typed Zod registry); the
   server handler, SDK, CLI, MCP, and OpenAPI all derive from it (no codegen — shared types).
 - **The deployment** — single-node Convex (SPEC §11). Bring your own keys; you own the deployment.
