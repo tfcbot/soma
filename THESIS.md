@@ -9,13 +9,15 @@ implement-anywhere contract lives in [SPEC.md](./SPEC.md), and a concrete walkth
 ## 1. The idea: your AI brain needs a workstation
 
 A language model can think, plan, and decide. What it cannot do is *act in the world* — it has
-no phone to reach people, no machine to run code on, no place to keep files, no inbox. A brilliant worker with no desk gets nothing done.
+no machine to run code on, no place to keep files. A brilliant worker with no desk gets nothing done.
 
-A **workstation** is the equipped place an agent works: a small, fixed set of tools — **phone**,
-**email**, **computer**, **storage** — behind one metered gateway. Together they give an agent a
-*complete loop*: be briefed, do the work, keep its outputs, and report back — without ever borrowing
-the principal's own phone, email, or machine. The agent coordinates its own work; the workstation
-supplies the tools and meters their use.
+A **workstation** is a **metered key gateway** with capabilities behind it. The framework's own
+primitives are the gateway concerns — **keys, access control, credits, rate limits, observability,
+signup/topup** — plus the extensibility shape (typed contract + ports/adapters) that turns one
+definition into an API, a CLI, an MCP server, and OpenAPI docs in one pass. The reference build
+ships two capabilities — **Computer** and **Storage** — as a working baseline; the operator brings
+or replaces capabilities to compose their service. The agent coordinates its own work; the
+workstation meters the calls.
 
 | | What it is | Who owns it |
 |---|---|---|
@@ -194,9 +196,9 @@ frontend consumes things. Swap "frontend" for "agent":
   ┌─────────┐                              ┌──────────────────────────┐
   │  BFF    │  shapes & aggregates         │   The Workstation        │  shapes vendors into
   └─────────┘                              └──────────────────────────┘  one agent-shaped contract
-     ├─► auth service                         ├─► phone, email
-     ├─► orders service                       ├─► computer (sandbox)
-     └─► payments service                     ├─► storage (filesystem)
+     ├─► auth service                         ├─► computer (sandbox)
+     ├─► orders service                       └─► storage (filesystem)
+     └─► payments service
                                               └─► metered gateway (accounts, credits, events)
 ```
 
@@ -208,7 +210,7 @@ microservices directly.
 Two commitments keep the contract stable while the messy parts churn:
 
 - **Hexagonal (ports & adapters).** Each tool is a *port*; each vendor is a swappable *adapter*.
-  Swapping a phone vendor or re-provisioning the sandbox changes an adapter — never the contract
+  Swapping a storage vendor or re-provisioning the sandbox changes an adapter — never the contract
   the agent depends on. Adding a tool is a new port + adapter, additively.
 - **Event-driven.** The agent calls a tool; the gateway records a **usage event** and may fan it
   out as a webhook to the principal's channels. Pull (`GET`) and push (event → webhook) are the
@@ -249,7 +251,7 @@ Two roles — often the same person at first. The **operator** stands up and run
 for their own agent, or as a metered service whose per-key accounts, credits, and event ledger let
 them meter (and bill) others' usage. The **principal** is whoever's agent works at it — they own
 their data and connections and need no plumbing (no VPS, no API keys, no vendor accounts, not even
-their own phone/email/data plugged in), and they're fine with unrestricted compute *because it's
+their own machine/data plugged in), and they're fine with unrestricted compute *because it's
 sandboxed*. Self-hosting, operator and principal are one. Run as a service, they're distinct — but
 either way what's exposed is one opinionated, metered API, never a configuration burden.
 
@@ -265,5 +267,4 @@ either way what's exposed is one opinionated, metered API, never a configuration
 
 - **Sandbox sessions at scale** — a workstation's sandbox should persist across calls per account;
   multi-tenant needs isolation between principals' VMs and files.
-- **Channel media limits** — embedding video in SMS/iMessage vs. delivering by email attachment.
 - **Pricing** — price workstation access (credits) so it covers vendor cost and funds the operation.

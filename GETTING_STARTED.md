@@ -48,15 +48,11 @@ Omit any of these and that primitive runs on its mock. Set them on the deploymen
 
 | Primitive | Env var(s) | Adapter | Omit → |
 |---|---|---|---|
-| Phone | `AGENTPHONE_API_KEY`, `AGENTPHONE_AGENT_ID` | AgentPhone | mock |
-| Email | `AGENTMAIL_API_KEY`, `AGENTMAIL_INBOX_ID` | AgentMail | mock |
 | Sandbox | `VERCEL_TEAM_ID`, `VERCEL_PROJECT_ID`, `VERCEL_TOKEN` | Vercel Sandbox (persistent microVM) | mock |
 | Todo | _(none)_ | Convex DB | always real |
 
 ```bash
-npx convex env set AGENTMAIL_API_KEY "…"
-npx convex env set AGENTMAIL_INBOX_ID "…"
-# … and so on for the primitives you want live
+# … and so on for the capabilities you want live
 ```
 
 > Note: the real vendor adapters are currently typed stubs that throw — they're gated on the
@@ -72,11 +68,6 @@ KEY="<the apiKey from accounts:mintKey>"
 
 # Check your balance (free)
 curl -s "$URL/v1/balance" -H "Authorization: Bearer $KEY"
-
-# Call a primitive — send an SMS (debits the key's credits per the op's cost)
-curl -s -X POST "$URL/v1/phone/messages" \
-  -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-  -d '{"to":"+15551230000","body":"hello from the body"}'
 
 # Run code in the sandbox; write/read a file; list storage
 curl -s -X POST "$URL/v1/sandbox/exec" \
@@ -94,7 +85,7 @@ A metered key with too few credits gets **402** (with a `topupUrl`); an over-rat
 
 ## 6. Point your agent at it
 
-An agent (Claude) drives the primitives over these endpoints. The `workstation` SDK (`packages/sdk`) gives
+An agent (Claude) drives the capabilities over these endpoints. The `workstation` SDK (`packages/sdk`) gives
 typed methods; `packages/mcp` exposes one MCP tool per primitive; `packages/cli` one command each —
 all derived from `packages/contract`. Point any of them at your `baseUrl` + an account API key.
 

@@ -17,8 +17,8 @@ A key resolves to one **account** — its own credit balance, its own event log,
 Per-key scopes restrict what an account can call. Pattern: `port:method`.
 
 - `"*"` or empty array — full access.
-- `"phone:*"` — every phone op.
-- `"phone:sendSms"` — that one op only.
+- `"sandbox:*"` — every sandbox op.
+- `"sandbox:exec"` — that one op only.
 
 A call outside its scopes returns `403` with the violated op.
 

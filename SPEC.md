@@ -14,8 +14,9 @@ RFC 2119.
 ## 1. Abstract
 
 Workstation is a headless backend that exposes a
-fixed set of **primitives** — phone, email, sandbox (compute), and filesystem (storage) —
-**directly** through one **gateway**: an API-key-gated, metered, observable HTTP contract. An
+a metered, key-gated HTTP **gateway** with two reference **capabilities** — sandbox (compute)
+and filesystem (storage). The framework's own primitives are the gateway concerns (keys,
+access control, metering, rate limits, observability); capabilities are the operator's surface. An
 external **Agent** (the brain, brought by the caller) calls the primitives to accomplish work and
 **coordinates that work itself**. The platform does not own that orchestrating Agent; it serves
 the contract. (What an implementation places *behind* a contract endpoint — a deterministic
@@ -41,7 +42,7 @@ primitive adapters.
 
 An implementation conforms to this protocol if and only if it:
 
-1. implements the four primitive interfaces in §5 (an implementation MAY add more, §10);
+1. implements the reference capability interfaces in §5 (an implementation MAY add or replace, §10);
 2. exposes each primitive operation over the Gateway HTTP API (§7) with the authentication in §7.1;
 3. meters billable operations deterministically and returns `402` on an empty balance (§7.4);
 4. honors the security requirements in §9 — in particular, it MUST NOT expose secrets as a
@@ -61,11 +62,12 @@ agent.
    Agent (brain, external) ──HTTP──► Gateway
                                        │  auth → rate limit (429) → meter (402)
                                        │  → validate → route → event log
-            ┌───────────┬──────────────┼──────────────┐
-          Phone       Email          Sandbox       FileSystem
-          (port)      (port)         (port)        (port)
-            │           │              │             │
-         adapter     adapter        adapter       adapter
+                                       │
+                                   ┌───┴───────────┐
+                                Sandbox       FileSystem
+                                (port)        (port)
+                                   │             │
+                                adapter       adapter
 ```
 
 The Agent MUST NOT be required to address adapters directly; it interacts only with the gateway
@@ -74,23 +76,11 @@ every registry entry uniformly.
 
 ## 5. Primitives
 
-Each primitive is defined by an interface (language-neutral; `bytes` = binary blob, `?` =
-optional/nullable). A conforming implementation MUST provide an adapter for each. Binary payloads
-cross the HTTP contract as base64.
+Each reference capability is defined by an interface (language-neutral; `bytes` = binary blob,
+`?` = optional/nullable). A conforming implementation MUST provide an adapter for each. Binary
+payloads cross the HTTP contract as base64.
 
-### 5.1 Phone
-```
-sendSms(to: string, body: string) -> { id: string }
-```
-
-### 5.2 Email
-```
-send({ to: string, subject: string, body: string,
-       attachments?: [{ filename: string, url: string }] }) -> { id: string }
-```
-Attachments are passed by URL (typically a FileSystem public URL, §5.4).
-
-### 5.3 Sandbox (compute)
+### 5.1 Sandbox (compute)
 ```
 exec(command: string) -> { stdout: string, stderr: string, exitCode: int }
 putFile(path: string, data: bytes|string) -> void
@@ -103,7 +93,7 @@ calls are independent HTTP requests, a conforming Sandbox SHOULD provide a **ses
 across calls** for a given account (a `putFile` then a later `exec`/`getFile` MUST address the
 same working tree).
 
-### 5.4 FileSystem (storage)
+### 5.2 FileSystem (storage)
 ```
 read(path: string) -> bytes?
 write(path: string, data: bytes|string, opts?: { public?: bool }) -> { path, url? }
@@ -118,7 +108,7 @@ URL). `publicUrl` MUST be deterministic for a given path.
 The contract is a set of named **operations**. Each operation declares a method, a path, an input
 schema, an output schema, and a **credit cost** (0 = free). The gateway exposes each operation as
 an HTTP endpoint (§7) and applies the same pipeline to all of them (§4). A conforming
-implementation MUST expose, at minimum, one operation per primitive interface method in §5, plus the
+implementation MUST expose, at minimum, one operation per reference capability method in §5, plus the
 account-facing `balance` and `events` operations (§7).
 
 This registry is the **single source of truth**: server routing, client SDKs, and any published
@@ -135,8 +125,6 @@ validate input → run → record an event (§7.3).
 
 | Method & path | Primitive / purpose | Success | Errors |
 |---|---|---|---|
-| `POST /v1/phone/messages` | Phone: send SMS | `200` `{ id }` | `400`,`401`,`402`,`429` |
-| `POST /v1/email/messages` | Email: send | `200` `{ id }` | `400`,`401`,`402`,`429` |
 | `POST /v1/sandbox/exec` | Sandbox: run a command | `200` ExecResult | `400`,`401`,`402`,`429` |
 | `PUT /v1/sandbox/files` | Sandbox: write a file (base64) | `200` `{ path }` | `400`,`401`,`402`,`429` |
 | `GET /v1/sandbox/files?path=` | Sandbox: read a file (base64) | `200` `{ data? }` | `401`,`402`,`429` |
@@ -203,12 +191,12 @@ metering, so a throttled call does not consume credits.
 
 ## 9. Extensibility
 
-The four primitives are the starting set, not the ceiling. New operations (a new primitive method, or
-a new primitive such as `publish`) MUST be **additive** — a new entry in the operation registry (§6)
-plus, for a new primitive, a port + adapter — without changing existing primitive interfaces. Because
-the registry is the single source of truth, an added operation surfaces in the server, the SDK,
-and any OpenAPI description from one definition. Breaking changes to a primitive interface or to §7
-require a protocol version bump.
+The reference capabilities are a starting set, not the ceiling. New operations (a new method on a
+capability, or a new capability such as `publish`) MUST be **additive** — a new entry in the
+operation registry (§6) plus, for a new capability, a port + adapter — without changing existing
+capability interfaces. Because the registry is the single source of truth, an added operation
+surfaces in the server, the SDK, and any OpenAPI description from one definition. Breaking changes
+to a capability interface or to §7 require a protocol version bump.
 
 ## 10. Reference adapters (informative)
 
@@ -216,8 +204,6 @@ These satisfy the interfaces above; any equivalent adapter conforms.
 
 | Primitive | Reference adapter | Alternatives |
 |---|---|---|
-| Phone | AgentPhone | Twilio |
-| Email | AgentMail | Postmark, SendGrid |
 | Sandbox | Vercel Sandbox (persistent microVM) | Freestyle, E2B, Modal |
 | Gateway / host | Convex (DB + HTTP actions) | any DB + HTTP server |
 
@@ -244,7 +230,7 @@ via `CONVEX_AGENT_MODE=anonymous`).
 
 ## Glossary
 
-- **Workstation** — the conforming backend; the primitives + gateway, headless.
+- **Workstation** — the conforming backend; the gateway + reference capabilities, headless.
 - **Agent / brain** — the external caller; bring your own. Owns task tracking.
 - **Principal** — the customer.
 - **Provider** — operator of a deployment (the Principal, when self-hosting); mints API keys.
