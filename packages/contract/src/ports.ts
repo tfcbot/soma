@@ -1,6 +1,5 @@
 import type { PhonePort } from "../../../modules/phone/operations";
 import type { EmailPort } from "../../../modules/email/operations";
-import type { WalletPort } from "../../../modules/wallet/operations";
 import type { SandboxPort } from "../../../modules/sandbox/operations";
 import type { FileSystemPort } from "../../../modules/filesystem/operations";
 import type { Operations, OperationId } from "./operations";
@@ -9,7 +8,6 @@ import type { Operations, OperationId } from "./operations";
 export interface Ports {
   phone: PhonePort;
   email: EmailPort;
-  wallet: WalletPort;
   sandbox: SandboxPort;
   filesystem: FileSystemPort;
 }

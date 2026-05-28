@@ -12,7 +12,7 @@ metadata:
 
 Workstation lets you ship your service as a metered **API + CLI + MCP** — one typed contract, three
 surfaces — that your clients' agents use and pay for headlessly. It ships five reference primitives
-(phone, email, wallet, computer, storage) behind one gateway (per-key accounts, credits, rate
+(phone, email, computer, storage) behind one gateway (per-key accounts, credits, rate
 limits, scopes, an event ledger), but the real job is packaging *your* capabilities the same way.
 This skill takes a user from nothing to a deployed, paid Workstation in three phases. **Get each phase green before starting the next.** Work in small, verified steps; confirm
 each before moving on. The repo's `AGENTS.md` has the canonical add-a-capability recipe.
@@ -57,7 +57,7 @@ so this needs zero external keys and no Convex login.
      -d '{"to":"+15551230000","body":"hello workstation"}'      # → {"id":"sms_mock_1"}
    ```
 5. Confirm the gateway works: `GET /v1/balance` (credits debited), `GET /v1/events` (the call is
-   logged). Optionally exercise `sandbox/exec`, `fs/objects` (base64), `wallet/cards` on mocks.
+   logged). Optionally exercise `sandbox/exec`, `fs/objects` (base64) on mocks.
 
 ✅ **Checkpoint:** a working Workstation, end-to-end, locally on mocks. Commit it to their repo
 (`git add -A && git commit -m "baseline workstation" && git push`). Only now proceed.
@@ -76,7 +76,6 @@ Move from local mocks to a hosted, metered deployment. State what each step *req
    |---|---|---|
    | Email (AgentMail) | create an inbox | `AGENTMAIL_API_KEY`, `AGENTMAIL_INBOX_ID` |
    | Phone (AgentPhone) | get a number/agent; register A2P 10DLC for live SMS | `AGENTPHONE_API_KEY`, `AGENTPHONE_AGENT_ID` |
-   | Wallet (AgentCard) | complete KYC, create a cardholder | `AGENTCARD_API_KEY`, `AGENTCARD_CARDHOLDER_ID` |
    | Computer (Freestyle) | get an API key | `FREESTYLE_API_KEY` |
    | Storage (R2/Archil) | create a bucket + CDN/disk | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_ACCESS_KEY_SECRET`, `R2_BUCKET_NAME`, `CDN_BASE_URL`, `ARCHIL_DISK_ID` |
    Re-run the same calls from Phase 1 against the live URL to confirm each connected primitive.
