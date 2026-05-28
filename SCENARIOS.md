@@ -55,17 +55,13 @@ by the key, metered against the credit balance, and recorded as an event:
 2. **Computer** — `POST /v1/sandbox/exec`: generate the hero frame, run the gen pipeline for a 9:16
    UGC clip, burn captions, normalize audio. Unrestricted, isolated; the sandbox session persists
    across calls, so a later `exec`/`getFile` sees the same working tree.
-3. **Email (+ escalation)** — only when needed: the clip wants a licensed track. Workstation issues
-   no card, so the agent doesn't buy it on her behalf — it signs up where it can (link lands in the
-   `ops@` inbox) and **surfaces the cost to Maya** over phone/email for her to approve and settle
-   with her own payment method. Workstation flags the need and meters the work; spending on the open
-   web is the agent's own concern, not the workstation's.
+3. **Email** — when the work needs it: pull a licensed track from the brand kit, sign up for a tool
+   (confirmation lands in the `ops@` inbox), and deliver the finished cut to Maya. Correspondence and
+   signups route through the inbox, archived for the record.
 4. **Storage (write)** — `PUT /v1/fs/objects` (public): the render lands in the store with a CDN url.
 
-Spend has **one meter**: the **credit balance** (each gateway call costs credits; visible at
-`GET /v1/balance`), funded inbound via Stripe. If credits run low mid-batch, calls return `402` with
-a `topupUrl`; the agent surfaces that need in chat — "this batch needs a top-up of $X" — and pauses
-rather than
+Each gateway call is metered against the credit balance (visible at `GET /v1/balance`). If credits
+run low mid-batch, calls return `402` with a `topupUrl`; the agent pauses and asks rather than
 failing silently.
 
 ### Step 3 — QA and observability (Lumen's product)

@@ -44,9 +44,7 @@ blank contract. Use them, swap the vendor behind any one, or add your own (a cap
 
 The **gateway** is the durable spine the agent actually calls: per-key accounts, per-call credit
 metering (402), opt-in rate limits (429), scoped keys (403), and a generic event ledger
-(observability + webhooks). Money moves **one way** — clients pay *in* via Stripe (credits); the
-workstation never issues cards or spends on the agent's behalf. When a call needs payment, the agent
-surfaces it in chat, priced from the services you configured. Task tracking is **not** a primitive —
+(observability + webhooks). Task tracking is **not** a primitive —
 the agent brain owns it. The
 first build is a **single-node** deployment (SPEC.md §11).
 

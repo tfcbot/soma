@@ -17,11 +17,6 @@ A **workstation** is the equipped place an agent works: a small, fixed set of to
 the principal's own phone, email, or machine. The agent coordinates its own work; the workstation
 supplies the tools and meters their use.
 
-Workstation moves money **one way**: it meters access and the operator bills for it (inbound, via
-Stripe). It deliberately does **not** issue cards or spend on the agent's behalf — that's outside
-its ethos. The agent can still pay the outside world; it does so with its *own* instruments, not
-through the workstation.
-
 | | What it is | Who owns it |
 |---|---|---|
 | **Workstation** | the tools + the metered gateway — where work happens | provided/hosted; headless |
@@ -134,8 +129,7 @@ repeat work**, and **spend where the leverage is**.
 inbox, the VM, the stored bytes. Because it routes through *the contract*, each charge is a
 **metered event** attributable to a specific call, not a monthly lump, and **one ceiling** holds it
 deterministically in code, never by asking the agent to behave: the per-call **credit** debit (the
-caller pays per use; an empty balance returns `402`). The workstation never spends *outward* on the
-agent's behalf, so there is nothing to cap there — paying the outside world is the agent's own job.
+caller pays per use; an empty balance returns `402`).
 
 The same mechanism is why a Workstation can be **operated as a service, not just used personally**:
 because every call is a per-key, attributable, metered event, the operator can bill others' usage

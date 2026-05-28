@@ -194,8 +194,7 @@ metering, so a throttled call does not consume credits.
 - **Secrets are never a primitive.** Vendor credentials MUST be held server-side and MUST NOT be
   exposed through any primitive or endpoint. The Agent borrows capabilities (send, compute, store), never the underlying keys.
 - **Sandbox isolation.** Unrestricted execution MUST be isolated from the Principal's real
-  accounts. The workstation holds no payment instrument and performs no outbound spend on the
-  Agent's behalf — paying the outside world is the Agent's own concern, out of scope here.
+  accounts.
 - **Self-crediting.** The credit-grant seam (§7.3) MUST NOT be reachable by the spending caller.
 - **Scheduling, memory, and task tracking are out of scope.** They belong to the Agent (the
   brain), not the workstation; an implementation MUST NOT need them to conform.
