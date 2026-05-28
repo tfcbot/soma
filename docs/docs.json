@@ -1,0 +1,137 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "sequoia",
+  "name": "Workstation",
+  "description": "Monetize your AI expertise — ship your stack as a metered API + CLI + MCP.",
+  "colors": {
+    "primary": "#0A0A0A",
+    "light": "#525252",
+    "dark": "#000000"
+  },
+  "favicon": "/favicon.svg",
+  "api": {
+    "baseUrl": "https://<your-deploy>.convex.site",
+    "auth": {
+      "method": "bearer"
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "index",
+              "get-api-key",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "authentication",
+              "credits-and-billing"
+            ]
+          },
+          {
+            "group": "Primitives",
+            "pages": [
+              "primitives/phone",
+              "primitives/email",
+              "primitives/computer",
+              "primitives/storage"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Billing & Keys",
+            "pages": [
+              "POST /v1/signup",
+              "POST /v1/signup/claim",
+              "POST /v1/topup",
+              "POST /v1/topup/confirm",
+              "GET /v1/balance",
+              "GET /v1/events"
+            ]
+          },
+          {
+            "group": "Phone",
+            "pages": [
+              "POST /v1/phone/messages"
+            ]
+          },
+          {
+            "group": "Email",
+            "pages": [
+              "POST /v1/email/messages"
+            ]
+          },
+          {
+            "group": "Computer",
+            "pages": [
+              "POST /v1/sandbox/exec",
+              "PUT /v1/sandbox/files",
+              "GET /v1/sandbox/files",
+              "POST /v1/sandbox/dispose"
+            ]
+          },
+          {
+            "group": "Storage",
+            "pages": [
+              "PUT /v1/fs/objects",
+              "GET /v1/fs/objects",
+              "GET /v1/fs/list",
+              "GET /v1/fs/public-url"
+            ]
+          }
+        ],
+        "openapi": "openapi/spec.json"
+      },
+      {
+        "tab": "CLI",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "cli/index",
+              "cli/install",
+              "cli/auth"
+            ]
+          }
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "GitHub",
+          "href": "https://github.com/tfcbot/workstation",
+          "icon": "github"
+        }
+      ]
+    }
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "navbar": {
+    "primary": {
+      "type": "button",
+      "label": "Get API Key",
+      "href": "https://<your-landing>.example.com"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/tfcbot/workstation"
+    }
+  },
+  "openapi": "openapi/spec.json"
+}

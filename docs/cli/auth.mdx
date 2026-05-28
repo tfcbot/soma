@@ -1,0 +1,12 @@
+---
+title: "Auth"
+description: "Point the CLI at a deploy and save your key."
+---
+
+```bash
+workstation auth --url https://<your-deploy>.convex.site --key sk_workstation_...
+```
+
+Saved to `~/.workstation/config.json`. Run `workstation auth` with no args to see current config.
+
+All subcommands inherit the URL + key from config.

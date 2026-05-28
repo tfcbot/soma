@@ -1,0 +1,28 @@
+---
+title: "Authentication"
+description: "Bearer tokens, per-key accounts, scopes."
+---
+
+Every gated call carries a bearer token:
+
+```
+Authorization: Bearer sk_workstation_...
+```
+
+A key resolves to one **account** — its own credit balance, its own event log, its own optional
+**scopes**. Workstation never stores the plaintext key; only its SHA-256 hash.
+
+## Scopes
+
+Per-key scopes restrict what an account can call. Pattern: `port:method`.
+
+- `"*"` or empty array — full access.
+- `"phone:*"` — every phone op.
+- `"phone:sendSms"` — that one op only.
+
+A call outside its scopes returns `403` with the violated op.
+
+## Rotation & revocation
+
+Keys are issued once and can't be rotated by the caller. If a key is compromised, the operator
+mints a new one and the old one can be invalidated.

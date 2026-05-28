@@ -1,0 +1,940 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Workstation",
+    "version": "0.1.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.workstation.example"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {},
+    "parameters": {}
+  },
+  "paths": {
+    "/v1/phone/messages": {
+      "post": {
+        "summary": "Send an SMS",
+        "operationId": "phoneSendSms",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "to": {
+                    "type": "string"
+                  },
+                  "body": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "to",
+                  "body"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required (metered key out of credits)"
+          },
+          "429": {
+            "description": "Too Many Requests (rate limited)"
+          }
+        }
+      }
+    },
+    "/v1/email/messages": {
+      "post": {
+        "summary": "Send an email",
+        "operationId": "emailSend",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "to": {
+                    "type": "string"
+                  },
+                  "subject": {
+                    "type": "string"
+                  },
+                  "body": {
+                    "type": "string"
+                  },
+                  "attachments": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "filename": {
+                          "type": "string"
+                        },
+                        "url": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "filename",
+                        "url"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "to",
+                  "subject",
+                  "body"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required (metered key out of credits)"
+          },
+          "429": {
+            "description": "Too Many Requests (rate limited)"
+          }
+        }
+      }
+    },
+    "/v1/sandbox/exec": {
+      "post": {
+        "summary": "Run a command in the sandbox VM",
+        "operationId": "sandboxExec",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "stdout": {
+                      "type": "string"
+                    },
+                    "stderr": {
+                      "type": "string"
+                    },
+                    "exitCode": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "stdout",
+                    "stderr",
+                    "exitCode"
+                  ]
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required (metered key out of credits)"
+          },
+          "429": {
+            "description": "Too Many Requests (rate limited)"
+          }
+        }
+      }
+    },
+    "/v1/sandbox/files": {
+      "put": {
+        "summary": "Write a file into the sandbox",
+        "operationId": "sandboxPutFile",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "data": {
+                    "type": "string",
+                    "description": "base64-encoded bytes"
+                  }
+                },
+                "required": [
+                  "path",
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "path": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "path"
+                  ]
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required (metered key out of credits)"
+          },
+          "429": {
+            "description": "Too Many Requests (rate limited)"
+          }
+        }
+      },
+      "get": {
+        "summary": "Read a file out of the sandbox",
+        "operationId": "sandboxGetFile",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "path",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "base64-encoded bytes"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required (metered key out of credits)"
+          },
+          "429": {
+            "description": "Too Many Requests (rate limited)"
+          }
+        }
+      }
+    },
+    "/v1/sandbox/dispose": {
+      "post": {
+        "summary": "Suspend/destroy the sandbox VM",
+        "operationId": "sandboxDispose",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required (metered key out of credits)"
+          },
+          "429": {
+            "description": "Too Many Requests (rate limited)"
+          }
+        }
+      }
+    },
+    "/v1/fs/objects": {
+      "put": {
+        "summary": "Write an object to storage",
+        "operationId": "fsWrite",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "data": {
+                    "type": "string",
+                    "description": "base64-encoded bytes"
+                  },
+                  "public": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "path",
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "path": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "path"
+                  ]
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required (metered key out of credits)"
+          },
+          "429": {
+            "description": "Too Many Requests (rate limited)"
+          }
+        }
+      },
+      "get": {
+        "summary": "Read an object from storage",
+        "operationId": "fsRead",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "path",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "base64-encoded bytes"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required (metered key out of credits)"
+          },
+          "429": {
+            "description": "Too Many Requests (rate limited)"
+          }
+        }
+      }
+    },
+    "/v1/fs/list": {
+      "get": {
+        "summary": "List object paths",
+        "operationId": "fsList",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "prefix",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "paths": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "paths"
+                  ]
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required (metered key out of credits)"
+          },
+          "429": {
+            "description": "Too Many Requests (rate limited)"
+          }
+        }
+      }
+    },
+    "/v1/fs/public-url": {
+      "get": {
+        "summary": "Get the public CDN url for a path",
+        "operationId": "fsPublicUrl",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "path",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "url"
+                  ]
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required (metered key out of credits)"
+          },
+          "429": {
+            "description": "Too Many Requests (rate limited)"
+          }
+        }
+      }
+    },
+    "/v1/balance": {
+      "get": {
+        "summary": "Get the calling key's credit balance",
+        "operationId": "getBalance",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accountId": {
+                      "type": "string"
+                    },
+                    "creditsCents": {
+                      "type": "number"
+                    },
+                    "spentCents": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "accountId",
+                    "creditsCents",
+                    "spentCents"
+                  ]
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required (metered key out of credits)"
+          },
+          "429": {
+            "description": "Too Many Requests (rate limited)"
+          }
+        }
+      }
+    },
+    "/v1/events": {
+      "get": {
+        "summary": "List the calling key's recent usage events",
+        "operationId": "listEvents",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "number",
+              "nullable": true
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "op": {
+                            "type": "string"
+                          },
+                          "costCents": {
+                            "type": "number"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "ts": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "op",
+                          "costCents",
+                          "status",
+                          "ts"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "events"
+                  ]
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required (metered key out of credits)"
+          },
+          "429": {
+            "description": "Too Many Requests (rate limited)"
+          }
+        }
+      }
+    },
+    "/v1/topup": {
+      "post": {
+        "summary": "Create a Stripe checkout to top up credits",
+        "operationId": "createTopup",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amountCents": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "amountCents"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "url"
+                  ]
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required (metered key out of credits)"
+          },
+          "429": {
+            "description": "Too Many Requests (rate limited)"
+          }
+        }
+      }
+    },
+    "/v1/signup": {
+      "post": {
+        "summary": "Start self-serve signup — Stripe checkout that mints a key",
+        "operationId": "signup",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amountCents": {
+                    "type": "number"
+                  },
+                  "scopes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "amountCents"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string"
+                    },
+                    "claimToken": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "url",
+                    "claimToken"
+                  ]
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required (metered key out of credits)"
+          },
+          "429": {
+            "description": "Too Many Requests (rate limited)"
+          }
+        }
+      }
+    },
+    "/v1/signup/claim": {
+      "post": {
+        "summary": "Claim a paid signup and retrieve the key",
+        "operationId": "claimSignup",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "claimToken": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "claimToken"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "apiKey": {
+                      "type": "string"
+                    },
+                    "accountId": {
+                      "type": "string"
+                    },
+                    "creditsCents": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required (metered key out of credits)"
+          },
+          "429": {
+            "description": "Too Many Requests (rate limited)"
+          }
+        }
+      }
+    },
+    "/v1/topup/confirm": {
+      "post": {
+        "summary": "Confirm/poll a top-up Checkout session",
+        "operationId": "confirmTopup",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "sessionId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "creditsCents": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required (metered key out of credits)"
+          },
+          "429": {
+            "description": "Too Many Requests (rate limited)"
+          }
+        }
+      }
+    }
+  }
+}
