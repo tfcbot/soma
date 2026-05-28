@@ -9,14 +9,13 @@ implement-anywhere contract lives in [SPEC.md](./SPEC.md), and a concrete walkth
 ## 1. The idea: your AI brain needs a workstation
 
 A language model can think, plan, and decide. What it cannot do is *act in the world* — it has
-no phone to reach people, no card to pay, no machine to run code on, no place to keep files, no
-inbox. A brilliant worker with no desk gets nothing done.
+no phone to reach people, no machine to run code on, no place to keep files, no inbox. A brilliant worker with no desk gets nothing done.
 
 A **workstation** is the equipped place an agent works: a small, fixed set of tools — **phone**,
-**email**, **wallet**, **computer**, **storage** — behind one metered gateway. Together they give
-an agent a *complete loop*: be briefed, do the work, pay for what it needs, keep its outputs, and
-report back — without ever borrowing the principal's own card, phone, email, or machine. The
-agent coordinates its own work; the workstation supplies the tools and meters their use.
+**email**, **computer**, **storage** — behind one metered gateway. Together they give an agent a
+*complete loop*: be briefed, do the work, keep its outputs, and report back — without ever borrowing
+the principal's own phone, email, or machine. The agent coordinates its own work; the workstation
+supplies the tools and meters their use.
 
 | | What it is | Who owns it |
 |---|---|---|
@@ -78,7 +77,7 @@ When a new agent appears, you don't migrate — you **re-point**:
        each switch = re-implement + re-spend     each switch = change one endpoint URL
 ```
 
-The contract, the wallet, the stored files, the usage history, the procurement glue all persist
+The contract, the credit balance, the stored files, the usage history, the procurement glue all persist
 across agent generations. Agent obsolescence becomes a URL change instead of a rewrite. This is
 also the honest version of "no lock-in": because we operate no agents and expose only a contract,
 the principal is never married to a model vendor *or* to us — the same open interface runs on a
@@ -126,11 +125,11 @@ contract turns it into cheap fixed-cost API calls, and reserves the model for ju
 unlocks **right-sizing the brain** (a cheaper agent can call the workstation), **no re-spend on
 repeat work**, and **spend where the leverage is**.
 
-**Tooling spend (wallet axis).** Every external cost routes through the wallet — and because it
-routes through *the contract*, each charge is a **metered event** attributable to a specific call,
-not a monthly lump. Two ceilings hold spend deterministically in code, never by asking the agent
-to behave: the per-call **credit** debit (the caller pays per use) and the wallet's **prepaid card
-limit** (the agent's hard cap on vendor spend).
+**Tooling spend (gateway axis).** Every primitive call has a real vendor cost — the SMS, the
+inbox, the VM, the stored bytes. Because it routes through *the contract*, each charge is a
+**metered event** attributable to a specific call, not a monthly lump, and **one ceiling** holds it
+deterministically in code, never by asking the agent to behave: the per-call **credit** debit (the
+caller pays per use; an empty balance returns `402`).
 
 The same mechanism is why a Workstation can be **operated as a service, not just used personally**:
 because every call is a per-key, attributable, metered event, the operator can bill others' usage
@@ -143,7 +142,7 @@ WHERE THE COST LANDS            opaque agent loop          at the workstation
 deterministic plumbing         paid in tokens, re-run      fixed-cost API call, cacheable
 model reasoning                paid in tokens              paid in tokens (unchanged — fine)
 external tooling               opaque monthly invoice      metered per call (the event ledger)
-spend ceiling                  "agent, stay under $X"      hard stop in code (credits + prepaid card)
+spend ceiling                  "agent, stay under $X"      hard stop in code (per-call credit debit → 402)
 attribution granularity        one bill                    per-call line items
 ```
 
@@ -193,7 +192,7 @@ frontend consumes things. Swap "frontend" for "agent":
   ┌─────────┐                              ┌──────────────────────────┐
   │  BFF    │  shapes & aggregates         │   The Workstation        │  shapes vendors into
   └─────────┘                              └──────────────────────────┘  one agent-shaped contract
-     ├─► auth service                         ├─► phone, email, wallet
+     ├─► auth service                         ├─► phone, email
      ├─► orders service                       ├─► computer (sandbox)
      └─► payments service                     ├─► storage (filesystem)
                                               └─► metered gateway (accounts, credits, events)
@@ -216,8 +215,8 @@ Two commitments keep the contract stable while the messy parts churn:
 ## 9. Unrestricted, but sandboxed — and that's the deal
 
 The computer at the workstation is **unrestricted** (it can run anything) precisely because it is
-**sandboxed**: an isolated VM, a wallet with a hard prepaid ceiling, no access to the principal's
-real accounts. The blast radius is contained, so the principal can hand over a complete loop
+**sandboxed**: an isolated VM with no payment instrument and no access to the principal's real
+accounts. The blast radius is contained, so the principal can hand over a complete loop
 comfortably. And because the provider controls the sandbox, they can **peer in** — computer,
 storage, the event ledger, the API calls all visible. Troubleshooting is "look at the workstation,"
 not "ask the client to screen-share." That's what makes QA-and-maintenance cheap enough to take off
@@ -240,8 +239,7 @@ The front-of-house reframe:
 > narrow interface whose only job is to surface deliverables, progress, and issues to the
 > principal's agent.
 
-Production, QA, and procurement happen behind it. The principal's only obligations are **fund the
-workstation** (credits) and **load the wallet**.
+Production, QA, and procurement happen behind it. The principal's only obligation is to **fund the workstation** (credits).
 
 ## 11. Who runs a Workstation
 
@@ -249,7 +247,7 @@ Two roles — often the same person at first. The **operator** stands up and run
 for their own agent, or as a metered service whose per-key accounts, credits, and event ledger let
 them meter (and bill) others' usage. The **principal** is whoever's agent works at it — they own
 their data and connections and need no plumbing (no VPS, no API keys, no vendor accounts, not even
-their own card/phone/email plugged in), and they're fine with unrestricted compute *because it's
+their own phone/email/data plugged in), and they're fine with unrestricted compute *because it's
 sandboxed*. Self-hosting, operator and principal are one. Run as a service, they're distinct — but
 either way what's exposed is one opinionated, metered API, never a configuration burden.
 
@@ -265,10 +263,7 @@ either way what's exposed is one opinionated, metered API, never a configuration
 
 - **Compute pricing/limits** (Freestyle VM CPU/mem/disk, idle suspend) — affects unit economics;
   confirm before pricing an offer.
-- **Wallet authorization + KYC/ToS** — autonomous signup may violate some vendors' terms; gate
-  behind explicit authorization and per-vendor judgment.
 - **Sandbox sessions at scale** — a workstation's sandbox should persist across calls per account;
   multi-tenant needs isolation between principals' VMs and files.
 - **Channel media limits** — embedding video in SMS/iMessage vs. delivering by email attachment.
-- **Pricing** — price workstation access (credits) so it funds the operation, and bill heavy
-  production as budgeted vendor spend through the wallet.
+- **Pricing** — price workstation access (credits) so it covers vendor cost and funds the operation.

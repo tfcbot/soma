@@ -14,7 +14,7 @@ RFC 2119.
 ## 1. Abstract
 
 Workstation is a headless backend that exposes a
-fixed set of **primitives** — phone, email, wallet, sandbox (compute), and filesystem (storage) —
+fixed set of **primitives** — phone, email, sandbox (compute), and filesystem (storage) —
 **directly** through one **gateway**: an API-key-gated, metered, observable HTTP contract. An
 external **Agent** (the brain, brought by the caller) calls the primitives to accomplish work and
 **coordinates that work itself**. The platform operates no agents; it serves the contract. A
@@ -39,7 +39,7 @@ primitive adapters.
 
 An implementation conforms to this protocol if and only if it:
 
-1. implements the five primitive interfaces in §5 (an implementation MAY add more, §10);
+1. implements the four primitive interfaces in §5 (an implementation MAY add more, §10);
 2. exposes each primitive operation over the Gateway HTTP API (§7) with the authentication in §7.1;
 3. meters billable operations deterministically and returns `402` on an empty balance (§7.4);
 4. honors the security requirements in §9 — in particular, it MUST NOT expose secrets as a
@@ -59,11 +59,11 @@ agent.
    Agent (brain, external) ──HTTP──► Gateway
                                        │  auth → rate limit (429) → meter (402)
                                        │  → validate → route → event log
-            ┌───────────┬──────────────┼────────────┬──────────────┐
-          Phone       Email          Wallet       Sandbox       FileSystem
-          (port)      (port)         (port)       (port)        (port)
-            │           │              │            │             │
-         adapter     adapter        adapter      adapter       adapter
+            ┌───────────┬──────────────┼──────────────┐
+          Phone       Email          Sandbox       FileSystem
+          (port)      (port)         (port)        (port)
+            │           │              │             │
+         adapter     adapter        adapter       adapter
 ```
 
 The Agent MUST NOT be required to address adapters directly; it interacts only with the gateway
@@ -86,17 +86,9 @@ sendSms(to: string, body: string) -> { id: string }
 send({ to: string, subject: string, body: string,
        attachments?: [{ filename: string, url: string }] }) -> { id: string }
 ```
-Attachments are passed by URL (typically a FileSystem public URL, §5.5).
+Attachments are passed by URL (typically a FileSystem public URL, §5.4).
 
-### 5.3 Wallet
-```
-issueCard({ amountCents: int, memo: string })
-  -> { id, pan, cvv, expiry, spendLimitCents, last4? }
-```
-The wallet **issues a prepaid card**; it does not "charge". `spendLimitCents` is the prepaid
-ceiling and is itself the hard per-transaction spend limit. `pan`/`cvv` are sensitive (§9).
-
-### 5.4 Sandbox (compute)
+### 5.3 Sandbox (compute)
 ```
 exec(command: string) -> { stdout: string, stderr: string, exitCode: int }
 putFile(path: string, data: bytes|string) -> void
@@ -109,7 +101,7 @@ calls are independent HTTP requests, a conforming Sandbox SHOULD provide a **ses
 across calls** for a given account (a `putFile` then a later `exec`/`getFile` MUST address the
 same working tree).
 
-### 5.5 FileSystem (storage)
+### 5.4 FileSystem (storage)
 ```
 read(path: string) -> bytes?
 write(path: string, data: bytes|string, opts?: { public?: bool }) -> { path, url? }
@@ -143,7 +135,6 @@ validate input → run → record an event (§7.3).
 |---|---|---|---|
 | `POST /v1/phone/messages` | Phone: send SMS | `200` `{ id }` | `400`,`401`,`402`,`429` |
 | `POST /v1/email/messages` | Email: send | `200` `{ id }` | `400`,`401`,`402`,`429` |
-| `POST /v1/wallet/cards` | Wallet: issue prepaid card | `200` Card | `400`,`401`,`402`,`429` |
 | `POST /v1/sandbox/exec` | Sandbox: run a command | `200` ExecResult | `400`,`401`,`402`,`429` |
 | `PUT /v1/sandbox/files` | Sandbox: write a file (base64) | `200` `{ path }` | `400`,`401`,`402`,`429` |
 | `GET /v1/sandbox/files?path=` | Sandbox: read a file (base64) | `200` `{ data? }` | `401`,`402`,`429` |
@@ -201,21 +192,16 @@ metering, so a throttled call does not consume credits.
 ## 8. Security considerations
 
 - **Secrets are never a primitive.** Vendor credentials MUST be held server-side and MUST NOT be
-  exposed through any primitive or endpoint. The Agent borrows capabilities (send, pay, compute,
-  store), never the underlying keys.
+  exposed through any primitive or endpoint. The Agent borrows capabilities (send, compute, store), never the underlying keys.
 - **Sandbox isolation.** Unrestricted execution MUST be isolated from the Principal's real
-  accounts; the only spending channel is the prepaid wallet.
-- **Prepaid ceiling.** Autonomous spend is bounded by the issued card's prepaid `spendLimitCents`;
-  aggregate spend caps, if wanted, are Provider policy (not part of the protocol). Implementations
-  SHOULD additionally gate charges behind explicit Principal authorization until trusted.
-- **Sensitive fields.** `pan`/`cvv` (§5.3) MUST NOT be logged.
+  accounts.
 - **Self-crediting.** The credit-grant seam (§7.3) MUST NOT be reachable by the spending caller.
 - **Scheduling, memory, and task tracking are out of scope.** They belong to the Agent (the
   brain), not the workstation; an implementation MUST NOT need them to conform.
 
 ## 9. Extensibility
 
-The five primitives are the starting set, not the ceiling. New operations (a new primitive method, or
+The four primitives are the starting set, not the ceiling. New operations (a new primitive method, or
 a new primitive such as `publish`) MUST be **additive** — a new entry in the operation registry (§6)
 plus, for a new primitive, a port + adapter — without changing existing primitive interfaces. Because
 the registry is the single source of truth, an added operation surfaces in the server, the SDK,
@@ -230,7 +216,6 @@ These satisfy the interfaces above; any equivalent adapter conforms.
 |---|---|---|
 | Phone | AgentPhone | Twilio |
 | Email | AgentMail | Postmark, SendGrid |
-| Wallet | AgentCard | Stripe Issuing, Lithic |
 | Sandbox | Freestyle (VM + git) | E2B, Modal, Vercel Sandbox (via ComputeSDK) |
 | FileSystem | Archil disk on R2 (+ CDN) | S3, GCS, R2 directly |
 | Gateway / host | Convex (DB + HTTP actions) | any DB + HTTP server |

@@ -1,6 +1,6 @@
 ---
 name: customize-workstation
-description: Take a user from nothing to a deployed, paid Workstation. Phase 1 — clone the repo into a clean dedicated dir as their own private repo, run it locally on mocks, and prove a "hello world" call works end-to-end (no vendor accounts). Phase 2 — walk the deployment path: host on Convex Cloud, connect real vendors, set metering, and mint scoped funded keys. Use when a user wants to set up, onboard, stand up, customize, or launch their own Workstation / agent backend.
+description: Take a user from nothing to a deployed, paid Workstation. Phase 1 — clone the repo into a clean dedicated dir as their own private repo, run it locally on mocks, and prove a "hello world" call works end-to-end (no vendor accounts). Phase 2 — walk the deployment path: host on Convex Cloud, connect real vendors, set metering, and mint scoped funded keys. Phase 3 — turn on the Stripe rail in TEST mode, generate a real test payment link, and complete a full paid round-trip (signup → pay with a test card → key minted) with no webhook. Use when a user wants to set up, onboard, stand up, customize, or launch their own Workstation / agent backend.
 compatibility: For an AI coding agent (e.g. Claude Code) on the user's machine. Requires git, bun, gh, and the Convex CLI. Live vendors and a hosted deploy need the user's own accounts/keys.
 license: MIT
 metadata:
@@ -10,10 +10,11 @@ metadata:
 
 # Set up a Workstation
 
-Workstation is a headless contract for agents that do work: five primitives (phone, email,
-wallet, computer, storage) behind one metered gateway (per-key accounts, credits, rate limits,
-scopes, an event ledger). This skill takes a user from nothing to a deployed paid Workstation in
-two phases. **Get Phase 1 green before starting Phase 2.** Work in small, verified steps; confirm
+Workstation lets you ship your service as a metered **API + CLI + MCP** — one typed contract, three
+surfaces — that your clients' agents use and pay for headlessly. It ships five reference primitives
+(phone, email, computer, storage) behind one gateway (per-key accounts, credits, rate
+limits, scopes, an event ledger), but the real job is packaging *your* capabilities the same way.
+This skill takes a user from nothing to a deployed, paid Workstation in three phases. **Get each phase green before starting the next.** Work in small, verified steps; confirm
 each before moving on. The repo's `AGENTS.md` has the canonical add-a-capability recipe.
 
 ---
@@ -56,7 +57,7 @@ so this needs zero external keys and no Convex login.
      -d '{"to":"+15551230000","body":"hello workstation"}'      # → {"id":"sms_mock_1"}
    ```
 5. Confirm the gateway works: `GET /v1/balance` (credits debited), `GET /v1/events` (the call is
-   logged). Optionally exercise `sandbox/exec`, `fs/objects` (base64), `wallet/cards` on mocks.
+   logged). Optionally exercise `sandbox/exec`, `fs/objects` (base64) on mocks.
 
 ✅ **Checkpoint:** a working Workstation, end-to-end, locally on mocks. Commit it to their repo
 (`git add -A && git commit -m "baseline workstation" && git push`). Only now proceed.
@@ -75,7 +76,6 @@ Move from local mocks to a hosted, metered deployment. State what each step *req
    |---|---|---|
    | Email (AgentMail) | create an inbox | `AGENTMAIL_API_KEY`, `AGENTMAIL_INBOX_ID` |
    | Phone (AgentPhone) | get a number/agent; register A2P 10DLC for live SMS | `AGENTPHONE_API_KEY`, `AGENTPHONE_AGENT_ID` |
-   | Wallet (AgentCard) | complete KYC, create a cardholder | `AGENTCARD_API_KEY`, `AGENTCARD_CARDHOLDER_ID` |
    | Computer (Freestyle) | get an API key | `FREESTYLE_API_KEY` |
    | Storage (R2/Archil) | create a bucket + CDN/disk | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_ACCESS_KEY_SECRET`, `R2_BUCKET_NAME`, `CDN_BASE_URL`, `ARCHIL_DISK_ID` |
    Re-run the same calls from Phase 1 against the live URL to confirm each connected primitive.
@@ -86,34 +86,56 @@ Move from local mocks to a hosted, metered deployment. State what each step *req
    ```
    - Scopes: `"*"`, `"<port>:*"`, or `"<port>:<method>"`; empty = full access; out-of-scope → 403.
    - Top up later: `accounts:grantCredits '{"accountId":"acc_…","amountCents":N}'`. Exhausted → 402.
-   - **Self-serve top-ups (Stripe, shipped):** set `STRIPE_SECRET_KEY` → clients call
-     `POST /v1/topup {amountCents}` for a Checkout URL; paid sessions credit via grantCredits.
-     Crediting is **idempotent** (a session credits at most once), funneled through
-     `topups:creditOnce`. Two ways to fulfill:
-     - *Webhook (production):* set `STRIPE_WEBHOOK_SECRET` and point a Stripe webhook at
-       `https://<deploy>.convex.site/webhooks/stripe`. Recommended: install the
-       [Stripe CLI](https://docs.stripe.com/stripe-cli) and run
-       `stripe listen --forward-to https://<deploy>.convex.site/webhooks/stripe` — it prints a
-       `whsec_…` to use as `STRIPE_WEBHOOK_SECRET`; trigger a test with
-       `stripe trigger checkout.session.completed`.
-     - *Poll (no webhook needed):* clients call `POST /v1/topup/confirm {sessionId}` after paying;
-       if the session is paid it credits immediately. Lets you test the full paid flow before any
-       webhook is configured.
-     - *Test fulfillment with no Stripe at all:* call the seam directly —
-       `bunx convex run topups:creditOnce '{"sessionId":"cs_test_1","accountId":"acc_…","amountCents":5000}'`
-       (re-run with the same `sessionId` → no-op; proves idempotency).
-     (Swap rails by replacing `convex/payments.ts`.)
-   - **Self-serve signup (let clients onboard themselves):** with `STRIPE_SECRET_KEY` set, the
-     public `POST /v1/signup {amountCents}` returns a Checkout `url` + `claimToken`; after paying,
-     the client polls `POST /v1/signup/claim {claimToken}` and the gateway mints their key with that
-     starting balance — once, shown a single time, no webhook needed. (`accounts:mintKey` stays
-     operator-only; this is the paid path to a first key.) Test minting with no Stripe:
-     `bunx convex run claims:storeClaim '{"claimToken":"claim_t1","sessionId":"cs_t1"}'` then
-     `bunx convex run claims:fulfill '{"claimToken":"claim_t1","creditsCents":20000}'`
-     (re-run → null, proves mint-once). CLI: `workstation signup` / `workstation claimSignup`.
+   - **Self-serve payments (Stripe, shipped).** Setting `STRIPE_SECRET_KEY` turns on three public
+     gateway ops — `POST /v1/signup` (mint a key from a paid Checkout), `POST /v1/topup` (refill an
+     existing key), and their poll-confirm counterparts. `accounts:mintKey` stays operator-only;
+     signup is the paid path to a first key. **Verify this end-to-end in Phase 3** — do not wire a
+     webhook yet. Crediting/minting is idempotent (each session credits/mints at most once), so you
+     can also test fulfillment with no Stripe at all:
+     `bunx convex run claims:fulfill '{"claimToken":"claim_t1","creditsCents":20000}'` (after a
+     `claims:storeClaim`; re-run → null) or `bunx convex run topups:creditOnce '{"sessionId":"cs_1","accountId":"acc_…","amountCents":5000}'`.
+     Swap rails by replacing `convex/payments.ts`.
    - Optional abuse cap: `WORKSTATION_RATE_LIMIT_PER_MIN`; 402 top-up link: `WORKSTATION_TOPUP_URL`.
 4. **Smoke test live & hand off:** call with a client key against the cloud URL; confirm metered
    debit, `402` when out of credits, `403` out of scope. Commit + push config to their repo.
+
+## Phase 3 — A real test payment link (Stripe TEST mode, no webhook)
+Prove the paid path works against real Stripe **before** taking real money or wiring a webhook.
+Everything here uses Stripe **test mode**, so no real charges occur.
+
+1. **Get a test secret key.** In the [Stripe dashboard](https://dashboard.stripe.com/test/apikeys)
+   with the **Test mode** toggle ON, copy the secret key (starts `sk_test_…`). Set it on the deploy:
+   ```bash
+   bunx convex env set STRIPE_SECRET_KEY sk_test_xxx
+   ```
+   Leave `STRIPE_WEBHOOK_SECRET` unset — the poll path needs no webhook.
+2. **Generate the payment link.** Hit a public op against the live URL (no key needed for signup):
+   ```bash
+   curl -s -X POST https://<deploy>.convex.site/v1/signup -H "Content-Type: application/json" -d '{"amountCents":2000}'
+   # → {"url":"https://checkout.stripe.com/c/pay/cs_test_…","claimToken":"claim_…"}
+   ```
+   (For an existing key, use `POST /v1/topup {amountCents}` instead — it returns a `url`.)
+3. **Pay with a test card.** Open the `url` in a browser and pay with the Stripe test card:
+   **`4242 4242 4242 4242`**, any future expiry, any CVC, any postal code. No real money moves.
+4. **Complete the round-trip (poll — no webhook).** Claim the key the payment minted:
+   ```bash
+   curl -s -X POST https://<deploy>.convex.site/v1/signup/claim -H "Content-Type: application/json" -d '{"claimToken":"claim_…"}'
+   # before paying → {"status":"pending"};  after paying → {"status":"completed","apiKey":"sk_workstation_…","creditsCents":2000}
+   ```
+   (Top-up equivalent: `POST /v1/topup/confirm {sessionId}`, where `sessionId` is the `cs_test_…`
+   from the checkout URL.) Re-claiming a minted token → `already_claimed` (mint-once holds).
+5. **Confirm it.** The returned `apiKey` is live: `curl …/v1/balance -H "Authorization: Bearer <key>"`
+   shows the `2000` credits the payment bought. ✅ The full paid round-trip works.
+
+**Optional — the webhook path (for production auto-fulfillment).** Install the
+[Stripe CLI](https://docs.stripe.com/stripe-cli), then:
+```bash
+stripe listen --forward-to https://<deploy>.convex.site/webhooks/stripe   # prints a whsec_…
+bunx convex env set STRIPE_WEBHOOK_SECRET whsec_…
+stripe trigger checkout.session.completed                                  # fires a test event
+```
+The webhook and the poll both fulfill through the same idempotent seam, so they can never
+double-credit. Go live by swapping the `sk_test_…` key for an `sk_live_…` one.
 
 ## Customizing — add a capability (vendor/vertical)
 A new primitive `xyz` = one folder `modules/xyz/` (Zod schemas + ops + port interface + adapter +

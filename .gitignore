@@ -11,3 +11,6 @@ bun.lockb
 
 # TypeSpec intermediate output (canonical spec emitted to spec/openapi/spec.json)
 spec/tsp-output/
+
+# turbo build cache
+.turbo

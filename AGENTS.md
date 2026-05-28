@@ -1,6 +1,6 @@
 # AGENTS.md — extending & maintaining Workstation
 
-Workstation is a **headless contract for agents that do work**: five primitives (phone, email, wallet,
+Workstation is a **headless contract for agents that do work**: four primitives (phone, email,
 computer, storage) exposed through one metered gateway. The contract is a **typed Zod registry**
 assembled from **self-contained capability modules**. The server router, SDK, CLI, MCP tools, and
 OpenAPI spec all derive from it. No codegen — in this monorepo, shared types give end-to-end safety.
@@ -108,5 +108,5 @@ bun scripts/gen-openapi.ts                                               # re-em
 
 ## Do NOT
 - Edit `gateway.ts` / `invoke.ts` / `http.ts` to add an op — they're generic.
-- Log `pan`/`cvv` from the wallet (sensitive).
+- Expose `accounts:grantCredits` / `mintKey` on a caller-facing route (operator-only).
 - Reach the credit-grant seam (`accounts:grantCredits`) from a caller-facing route.

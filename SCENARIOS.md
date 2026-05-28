@@ -3,10 +3,10 @@
 **Workstation is a headless contract for agents that do work.** Companion to [SPEC.md](./SPEC.md): the
 spec is abstract on purpose, so this doc plays out a real service end to end.
 
-One principle runs through every scenario: **the body gives the agent primitives; the agent does the
-work.** Workstation authenticates the key, meters each call, and records what happened — phone, email,
-wallet, compute, storage, behind one gateway. Sequencing, retries, and "is this done" live in the
-agent (the brain), never in the body.
+One principle runs through every scenario: **the workstation gives the agent primitives; the agent
+does the work.** Workstation authenticates the key, meters each call, and records what happened —
+phone, email, compute, storage, behind one gateway. Sequencing, retries, and "is this done" live in
+the agent (the brain), never in the workstation.
 
 ---
 
@@ -21,19 +21,18 @@ agent (the brain), never in the body.
 - **Workstation** — the headless platform: five primitives behind one metered gateway. It operates no
   agents; Lumen runs on top of it.
 
-Maya owns no plumbing — no VPS, no API keys, no vendor accounts, no card or phone or inbox plugged
-in, no dashboard to log into. She briefs, and she receives.
+Maya owns no plumbing — no VPS, no API keys, no vendor accounts, no phone or inbox plugged in,
+no dashboard to log into. She briefs, and she receives.
 
 ### Step 0 — Provisioning (Lumen, once)
 
-Lumen stands up an assistant for Maya: five primitives, deployed on her behalf, reached through one
+Lumen stands up an assistant for Maya: four primitives, deployed on her behalf, reached through one
 gateway.
 
 | Primitive | Provisioned as |
 |---|---|
 | **Phone** | `+1 (415) 555-0123` — Maya texts this to brief and to hear status |
 | **Email** | `studio@maya-brand.workstation.run` (client-facing) + a hidden `ops@…` inbox for signups/receipts |
-| **Wallet** | a prepaid virtual card; its `spendLimitCents` is the hard ceiling |
 | **Computer** | a Linux sandbox with the production toolchain (ffmpeg + the gen pipeline) |
 | **Storage** | an object store for the heavy MP4s, with a public CDN for delivery |
 
@@ -56,14 +55,13 @@ by the key, metered against the credit balance, and recorded as an event:
 2. **Computer** — `POST /v1/sandbox/exec`: generate the hero frame, run the gen pipeline for a 9:16
    UGC clip, burn captions, normalize audio. Unrestricted, isolated; the sandbox session persists
    across calls, so a later `exec`/`getFile` sees the same working tree.
-3. **Wallet + Email** — only when needed: the clip wants a licensed track, so the agent signs up
-   for the music service (link lands in the `ops@` inbox) and pays with a card from
-   `POST /v1/wallet/cards`, whose prepaid limit is the hard ceiling. The receipt archives in ops.
+3. **Email** — when the work needs it: pull a licensed track from the brand kit, sign up for a tool
+   (confirmation lands in the `ops@` inbox), and deliver the finished cut to Maya. Correspondence and
+   signups route through the inbox, archived for the record.
 4. **Storage (write)** — `PUT /v1/fs/objects` (public): the render lands in the store with a CDN url.
 
-Spend has two meters: the **credit balance** (each gateway call costs credits; visible at
-`GET /v1/balance`) and the **prepaid card** (vendor spend, capped per card). If credits run low
-mid-batch, calls return `402` with a `topupUrl`; the agent pauses and asks for a top-up rather than
+Each gateway call is metered against the credit balance (visible at `GET /v1/balance`). If credits
+run low mid-batch, calls return `402` with a `topupUrl`; the agent pauses and asks rather than
 failing silently.
 
 ### Step 3 — QA and observability (Lumen's product)
@@ -88,8 +86,8 @@ Maya: *"Ad 4's hook is flat — make it punchier."* She tells her agent, which r
 agent; it reruns the compute, storage, and email primitives for that one ad and re-delivers.
 Approval is something Maya says and the agents track.
 
-By month end: 10 ads delivered, every gateway call itemized in the event ledger, every vendor
-charge bounded by the prepaid card, zero infrastructure touched by Maya.
+By month end: 10 ads delivered, every gateway call itemized in the event ledger, billed inbound via
+Stripe, zero infrastructure touched by Maya.
 
 ### Why this isn't just "an agency with extra steps"
 
@@ -97,7 +95,7 @@ charge bounded by the prepaid card, zero infrastructure touched by Maya.
 |---|---|
 | Client gets a Slack channel + Drive folder + status calls | Client briefs by text/email and receives by email; the agent does the rest |
 | Agency sets the client up with a VPS, tools, and logins | Client owns no plumbing; the assistant *is* the plumbing, abstracted away |
-| Costs arrive as an opaque monthly invoice | Every gateway call metered (events + credits); vendor spend capped by the prepaid card |
+| Costs arrive as an opaque monthly invoice | Every gateway call metered (events + credits), billed inbound via Stripe |
 | Agency bills hours; quality depends on babysitting | Agency bills the deliverable; QA is cheap because the sandbox and event ledger are observable |
 | Client manages accounts and dashboards | No dashboard, no account — just a body their agent drives |
 
@@ -122,8 +120,8 @@ POST /v1/publish/posts
 { "platform": "meta", "mediaUrl": "https://cdn…/ad-04.mp4", "schedule": "2026-10-14T09:00Z" }
 ```
 
-The agent gains one more capability: take a finished ad and push it live, paying any boost from a
-prepaid card, reporting back through the phone and email primitives. An `analytics` primitive arrives
+The agent gains one more capability: take a finished ad and push it live (any ad spend is the
+principal's own, authorized and settled with her method), reporting back through phone and email. An `analytics` primitive arrives
 the same way — pull performance, feed it into next month's brief. **Primitives are additive, and
 adding one is type-checked, not a rewire.**
 
@@ -137,7 +135,7 @@ lead-gen, ops:
 ```
 The principal briefs their agent (over phone/email, or any channel).
 The AGENT coordinates the work, calling primitives through the metered gateway:
-  run code on the COMPUTER · read/write STORAGE · pay via WALLET · sign up & deliver via EMAIL/PHONE
+  run code on the COMPUTER · read/write STORAGE · sign up & deliver via EMAIL/PHONE
 Every call is authenticated, metered (credits → 402), and recorded (event ledger).
 The provider QAs by peering into the sandbox and the event ledger.
 The agent delivers through the email/phone primitive and reports back.
