@@ -1,0 +1,44 @@
+---
+title: "Credits & billing"
+description: "How metering, top-ups, and 402 work."
+---
+
+Every billable op has a `costCents` declared in the contract. Each call **debits** the caller's
+credit balance; an empty balance returns **`402 Payment Required`** with a `topupUrl`.
+
+The `402` body shape (RFC 9457 `problem+json`):
+
+```json
+{
+  "type": "https://paymentauth.org/problems/payment-required",
+  "title": "Payment Required",
+  "status": 402,
+  "detail": "Operation phoneSendSms costs 5 credits; balance is 0.",
+  "required": 5,
+  "balance": 0,
+  "topupUrl": "https://<your-landing>/?account=acc_..."
+}
+```
+
+The response also carries `WWW-Authenticate: Payment topupUrl="..."` (x402-ready seam).
+
+## Topping up
+
+```bash
+curl -X POST https://<your-deploy>.convex.site/v1/topup \
+  -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"amountCents": 5000}'
+# → { "url": "https://checkout.stripe.com/c/pay/cs_..." }
+```
+
+Pay, then either:
+- **Webhook** auto-credits if Stripe webhooks are wired (set `STRIPE_WEBHOOK_SECRET`), **or**
+- **Poll:** `POST /v1/topup/confirm {"sessionId": "cs_..."}` credits on demand.
+
+Both paths route through one idempotent seam — a session credits **at most once**.
+
+## Refunds
+
+If a call debits but then fails downstream, the gateway **refunds** the cost. You only pay for work
+that succeeded.

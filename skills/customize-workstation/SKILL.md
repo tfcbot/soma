@@ -97,6 +97,13 @@ Move from local mocks to a hosted, metered deployment. State what each step *req
    - Optional abuse cap: `WORKSTATION_RATE_LIMIT_PER_MIN`; 402 top-up link: `WORKSTATION_TOPUP_URL`.
 4. **Smoke test live & hand off:** call with a client key against the cloud URL; confirm metered
    debit, `402` when out of credits, `403` out of scope. Commit + push config to their repo.
+5. **Publish docs (Mintlify).** The repo ships a `docs/` folder ready for Mintlify — `docs.json`,
+   MDX guides, and an `openapi/spec.json` regenerated from the live contract by `bun run generate`.
+   To publish: install the [Mintlify GitHub app](https://github.com/apps/mintlify) on the operator's
+   repo, point it at the `docs/` folder, and set `api.baseUrl` in `docs/docs.json` to the live
+   `https://<their-deploy>.convex.site`. Every time the contract changes, run `bun run generate`
+   (writes both `spec/openapi/spec.json` and `docs/openapi/spec.json`), commit, and Mintlify
+   redeploys. Local preview: `cd docs && npx mint dev`.
 
 ## Phase 3 — A real test payment link (Stripe TEST mode, no webhook)
 Prove the paid path works against real Stripe **before** taking real money or wiring a webhook.

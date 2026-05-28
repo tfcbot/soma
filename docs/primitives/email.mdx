@@ -1,0 +1,11 @@
+---
+title: "Email"
+description: "Send email, deliver assets by URL."
+---
+
+The **Email** primitive lets an agent send email — typically delivering files via URL (a public
+[Storage](/primitives/storage) URL).
+
+- `POST /v1/email/messages {to, subject, body, attachments?}` — send, returns `{id}`.
+
+See the [API Reference](/api-reference) for full schema.

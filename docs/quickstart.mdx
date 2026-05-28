@@ -1,0 +1,24 @@
+---
+title: "Quickstart"
+description: "Make your first Workstation call in under a minute."
+---
+
+You'll need a key (see **[Get an API key](/get-api-key)**).
+
+```bash
+export KEY=sk_workstation_...
+
+# Check your balance (free op)
+curl https://<your-deploy>.convex.site/v1/balance \
+  -H "Authorization: Bearer $KEY"
+# → { "accountId": "acc_...", "creditsCents": 2000, "spentCents": 0 }
+
+# Send an SMS
+curl -X POST https://<your-deploy>.convex.site/v1/phone/messages \
+  -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"to":"+15551230000","body":"hello workstation"}'
+# → { "id": "sms_..." }
+```
+
+Out of credits? The next call returns `402` with a `topupUrl` — see **[Credits & billing](/credits-and-billing)**.

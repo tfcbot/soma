@@ -1,0 +1,41 @@
+---
+title: "Get an API key"
+description: "Two paths: operator-minted (manual) or self-serve via /v1/signup."
+---
+
+## Two paths to a key
+
+### 1. Self-serve (recommended for clients)
+
+Any caller can buy a key without operator intervention:
+
+```bash
+curl -X POST https://<your-deploy>.convex.site/v1/signup \
+  -H "Content-Type: application/json" \
+  -d '{"amountCents": 2000}'
+# → { "url": "https://checkout.stripe.com/c/pay/cs_...", "claimToken": "claim_..." }
+```
+
+Open the `url` in a browser and pay. Then claim the key:
+
+```bash
+curl -X POST https://<your-deploy>.convex.site/v1/signup/claim \
+  -H "Content-Type: application/json" \
+  -d '{"claimToken": "claim_..."}'
+# → { "status": "completed", "apiKey": "sk_workstation_...", "creditsCents": 2000 }
+```
+
+The `apiKey` is shown **once**. Save it.
+
+### 2. Operator-minted (you grant a key directly)
+
+If you're the operator and want to provision a key out-of-band:
+
+```bash
+bunx convex run accounts:mintKey '{"label":"client-acme","creditsCents":50000}'
+# → { "apiKey": "sk_workstation_...", "accountId": "acc_..." }
+```
+
+Add `scopes` to restrict (e.g. `["phone:sendSms"]`); empty = full access.
+
+See **[Authentication](/authentication)** for how the key is used on subsequent calls.

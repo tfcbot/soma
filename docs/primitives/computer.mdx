@@ -1,0 +1,15 @@
+---
+title: "Computer"
+description: "Run code in a persistent sandbox VM."
+---
+
+The **Computer** primitive is a persistent sandbox VM, one per account. The reference adapter is
+Vercel Sandbox: state survives across calls (filesystem auto-snapshotted and restored), so a
+`putFile` followed by a later `exec`/`getFile` sees the same working tree.
+
+- `POST /v1/sandbox/exec {command}` — run a shell command.
+- `PUT /v1/sandbox/files {path, data}` — write a file (base64).
+- `GET /v1/sandbox/files?path=` — read a file (base64).
+- `POST /v1/sandbox/dispose` — suspend the VM (snapshots automatically; next call resumes).
+
+See the [API Reference](/api-reference) for full schemas.

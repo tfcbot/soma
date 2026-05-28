@@ -1,0 +1,14 @@
+---
+title: "Storage"
+description: "Durable object storage with a public CDN."
+---
+
+The **Storage** primitive is durable object storage with a public CDN. The reference adapter is
+Cloudflare R2 over the S3 API. Use it for state and deliverables your agent wants to keep or serve.
+
+- `PUT /v1/fs/objects {path, data, public?}` — write; with `public: true` returns a CDN `url`.
+- `GET /v1/fs/objects?path=` — read.
+- `GET /v1/fs/list?prefix=` — list paths.
+- `GET /v1/fs/public-url?path=` — get the CDN URL for a path.
+
+See the [API Reference](/api-reference) for full schemas.

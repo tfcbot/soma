@@ -40,7 +40,15 @@ const doc = new OpenApiGeneratorV3(registry.definitions).generateDocument({
   servers: [{ url: "https://api.workstation.example" }],
 });
 
-const out = resolve(import.meta.dir, "../spec/openapi/spec.json");
-mkdirSync(resolve(import.meta.dir, "../spec/openapi"), { recursive: true });
-writeFileSync(out, JSON.stringify(doc, null, 2) + "\n");
-console.log(`Wrote ${out} (${Object.keys((doc as any).paths).length} paths)`);
+// Write to two locations: the canonical spec/ (for SDK/CLI consumers + external tooling) and
+// docs/openapi/ (so Mintlify can auto-render the API Reference tab from the live contract).
+const outputs = [
+  resolve(import.meta.dir, "../spec/openapi/spec.json"),
+  resolve(import.meta.dir, "../docs/openapi/spec.json"),
+];
+const json = JSON.stringify(doc, null, 2) + "\n";
+for (const out of outputs) {
+  mkdirSync(resolve(out, ".."), { recursive: true });
+  writeFileSync(out, json);
+  console.log(`Wrote ${out} (${Object.keys((doc as any).paths).length} paths)`);
+}
