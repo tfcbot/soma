@@ -2,7 +2,7 @@
   "node": {
     "externalPackages": [
       "agentmail",
-      "freestyle",
+      "@vercel/sandbox",
       "@aws-sdk/client-s3",
       "stripe"
     ]

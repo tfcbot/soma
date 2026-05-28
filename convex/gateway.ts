@@ -130,6 +130,7 @@ async function dispatch(r: GwRequest) {
   } else {
     r.output = await r.ctx.runAction(internal.invoke.invoke, {
       port: r.op.serve.port, method: r.op.serve.method, input: r.input,
+      accountId: r.account!.accountId,
     });
   }
 }
