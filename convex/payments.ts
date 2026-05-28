@@ -14,10 +14,12 @@ function getStripe(): Stripe {
   return new Stripe(key);
 }
 
-// Resolves the public landing URL (operator's deployed apps/web). Falls back to the deprecated
-// WORKSTATION_TOPUP_URL so existing deployments don't break on pull.
-function landingBase(): string {
+// Resolves the public base URL of the operator's deployed front door (apps/web). Falls back to
+// the prior WORKSTATION_LANDING_URL / WORKSTATION_TOPUP_URL names so existing deployments don't
+// break on pull.
+function baseUrl(): string {
   return (
+    process.env.WORKSTATION_BASE_URL ??
     process.env.WORKSTATION_LANDING_URL ??
     process.env.WORKSTATION_TOPUP_URL ??
     "https://workstation.example"
@@ -30,7 +32,7 @@ export const createTopupCheckout = internalAction({
   returns: v.object({ url: v.string(), sessionId: v.string() }),
   handler: async (_ctx, { accountId, amountCents }) => {
     const stripe = getStripe();
-    const base = landingBase();
+    const base = baseUrl();
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
@@ -99,7 +101,7 @@ export const createSignupCheckout = internalAction({
   returns: v.object({ url: v.string(), claimToken: v.string() }),
   handler: async (ctx, { amountCents, scopes }): Promise<{ url: string; claimToken: string }> => {
     const stripe = getStripe();
-    const base = landingBase();
+    const base = baseUrl();
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
