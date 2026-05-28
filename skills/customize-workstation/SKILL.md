@@ -143,6 +143,20 @@ stripe trigger checkout.session.completed                                  # fir
 The webhook and the poll both fulfill through the same idempotent seam, so they can never
 double-credit. Go live by swapping the `sk_test_…` key for an `sk_live_…` one.
 
+6. **Ship your front door (landing page).** The repo ships an empty-shell Next.js app at
+   `apps/web/` with `/` (brandable hero), `/success` (post-payment confirmation), and `/cancel`.
+   Deploy it to Vercel and point Stripe at it:
+   ```bash
+   cd apps/web && bun install               # workspace pickup
+   bunx vercel link && bunx vercel --prod   # human: browser auth, then deploys
+   bunx convex env set WORKSTATION_LANDING_URL https://<their-domain>
+   ```
+   Now Stripe sends paid buyers to `<their-domain>/success?session=…` and the `402` `topupUrl`
+   in error bodies points at `<their-domain>/?account=…`. Operator should swap the placeholder
+   hero in `apps/web/src/app/page.tsx` for their actual brand and value prop (the README hero is
+   the default scaffold). `WORKSTATION_LANDING_URL` supersedes the deprecated
+   `WORKSTATION_TOPUP_URL` (still honored as a fallback).
+
 ## Customizing — add a capability (vendor/vertical)
 A new primitive `xyz` = one folder `modules/xyz/` (Zod schemas + ops + port interface + adapter +
 mock + `server.ts`) and three one-line registrations. **Follow the recipe in `AGENTS.md`.** Never

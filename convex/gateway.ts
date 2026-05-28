@@ -12,8 +12,13 @@ import { runPipeline, type Middleware, type GwRequest } from "./middleware";
 // Adding an op never touches this file; adding a new concern = one more middleware.
 
 function topupUrl(accountId: string): string {
-  const base = process.env.WORKSTATION_TOPUP_URL ?? "https://workstation.example/topup";
-  return `${base}?account=${encodeURIComponent(accountId)}`;
+  // WORKSTATION_LANDING_URL = operator's deployed apps/web (where they wire a topup CTA);
+  // falls back to the deprecated WORKSTATION_TOPUP_URL so existing deployments don't break.
+  const base =
+    process.env.WORKSTATION_LANDING_URL ??
+    process.env.WORKSTATION_TOPUP_URL ??
+    "https://workstation.example";
+  return `${base}/?account=${encodeURIComponent(accountId)}`;
 }
 const isMetered = (op: GwRequest["op"]) => op.metered !== false && op.costCents > 0;
 
