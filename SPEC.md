@@ -217,7 +217,7 @@ These satisfy the interfaces above; any equivalent adapter conforms.
 | Phone | AgentPhone | Twilio |
 | Email | AgentMail | Postmark, SendGrid |
 | Sandbox | Freestyle (VM + git) | E2B, Modal, Vercel Sandbox (via ComputeSDK) |
-| FileSystem | Archil disk on R2 (+ CDN) | S3, GCS, R2 directly |
+| FileSystem | Cloudflare R2 (S3 API) + CDN | S3, GCS, any S3-compatible store |
 | Gateway / host | Convex (DB + HTTP actions) | any DB + HTTP server |
 
 ## 11. Reference deployment (informative)
@@ -232,7 +232,7 @@ on Convex:
 - Vendor keys live in Convex environment variables, read server-side.
 - Vendor SDKs require Node, so primitive calls run in a Convex `"use node"` action; the
   isolate-runtime gateway delegates to them.
-- Compute = Freestyle (Sandbox); storage = Archil disk backed by an R2 bucket (FileSystem +
+- Compute = Freestyle (Sandbox); storage = Cloudflare R2 via the S3 API (FileSystem +
   personal CDN). The event ledger and accounts/rate-limit counters are Convex tables. Convex's
   scheduler/vector/functions are deliberately **not** exposed as primitives (§8).
 
