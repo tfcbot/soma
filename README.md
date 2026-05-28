@@ -39,8 +39,7 @@ blank contract. Use them, swap the vendor behind any one, or add your own (a cap
 |---|---|---|
 | **Phone** | reach / brief by SMS (voice, iMessage later) | AgentPhone |
 | **Email** | correspond, sign up for services, deliver assets | AgentMail |
-| **Computer** | run code, unrestricted, sandboxed (`Sandbox` port) | Freestyle VM (ffmpeg, no 5-min cap) |
-| **Storage** | hold state + deliverables, serve them (`FileSystem` port) | Cloudflare R2 + CDN |
+| **Computer** | run code, unrestricted, sandboxed (`Sandbox` port) | Vercel Sandbox (persistent microVM, ffmpeg) |
 
 The **gateway** is the durable spine the agent actually calls: per-key accounts, per-call credit
 metering (402), opt-in rate limits (429), scoped keys (403), and a generic event ledger
@@ -203,7 +202,7 @@ Connect real providers one at a time by setting their keys (see `.env.example` a
 Working scaffold; **not yet integration-tested against live vendors or live Stripe.**
 
 - **Built:** hexagonal core; four primitives + gateway; real vendor adapters (AgentMail, AgentPhone,
-  Freestyle, Cloudflare R2) coded against the actual SDK/REST contracts; Convex backend; the Stripe
+  Vercel Sandbox, Cloudflare R2) coded against the actual SDK/REST contracts; Convex backend; the Stripe
   reference rail (inbound only — credits, top-ups, public self-serve signup), behind one swappable seam.
 - **Verified:** `tsc` typecheck clean; **11 unit tests pass** (credits, rate-limit, mock contracts);
   the Convex backend **codegens, typechecks, and deploys** to a local anonymous deployment; the
@@ -212,5 +211,5 @@ Working scaffold; **not yet integration-tested against live vendors or live Stri
   verified via the DB seam** (credit-once / mint-once) with no Stripe.
 - **Not yet verified:** live vendor round-trips and the live Stripe checkout round-trip (need real
   keys — see the skill's Phase 3); an integration-test layer.
-- **Open questions** that gate live use: Freestyle VM pricing/limits, A2P 10DLC registration for
-  SMS, R2 bucket + CDN domain setup (THESIS §13).
+- **Open questions** that gate live use: A2P 10DLC registration for SMS, R2 bucket + CDN domain
+  setup (THESIS §13).

@@ -261,8 +261,6 @@ either way what's exposed is one opinionated, metered API, never a configuration
 
 ## 13. Open questions & risks
 
-- **Compute pricing/limits** (Freestyle VM CPU/mem/disk, idle suspend) — affects unit economics;
-  confirm before pricing an offer.
 - **Sandbox sessions at scale** — a workstation's sandbox should persist across calls per account;
   multi-tenant needs isolation between principals' VMs and files.
 - **Channel media limits** — embedding video in SMS/iMessage vs. delivering by email attachment.

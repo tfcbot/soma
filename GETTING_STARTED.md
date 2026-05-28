@@ -50,8 +50,7 @@ Omit any of these and that primitive runs on its mock. Set them on the deploymen
 |---|---|---|---|
 | Phone | `AGENTPHONE_API_KEY`, `AGENTPHONE_AGENT_ID` | AgentPhone | mock |
 | Email | `AGENTMAIL_API_KEY`, `AGENTMAIL_INBOX_ID` | AgentMail | mock |
-| Sandbox | `FREESTYLE_API_KEY` | Freestyle VM + git | mock |
-| FileSystem | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_ACCESS_KEY_SECRET`, `R2_BUCKET_NAME`, `CDN_BASE_URL` | Cloudflare R2 + CDN | mock |
+| Sandbox | `VERCEL_TEAM_ID`, `VERCEL_PROJECT_ID`, `VERCEL_TOKEN` | Vercel Sandbox (persistent microVM) | mock |
 | Todo | _(none)_ | Convex DB | always real |
 
 ```bash
