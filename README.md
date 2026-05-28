@@ -1,7 +1,8 @@
 # Workstation
 
-**Launch a pay-as-you-go workstation for your clients' agents.** Ship your service as a metered
-**API + CLI + MCP** — one typed contract, three surfaces — that an agent uses and pays for headlessly.
+**Monetize your AI expertise.** Package the AI stack you've built — vendors, prompts, agent loops —
+as a metered **API + CLI + MCP** your clients' agents pay to call. One typed contract, three
+surfaces, pay-as-you-go billing built in.
 
 Your clients already have agents. The job isn't to deploy them another one — it's to give their
 agent the **semantic layer** it needs to use *your* service, in the way agents already talk: a tool
@@ -9,8 +10,9 @@ to call, a command to run, an endpoint to hit. Workstation turns one typed contr
 CLI, and an MCP server at once, behind a gateway that handles per-key accounts, usage metering, and
 self-serve payment. You run it headless; the client's agent calls it and settles the bill.
 
-> Most AI products try to *be* the agent. This one refuses to. It's the workstation the agent
-> borrows — you provide the metered access layer, the client brings the brain.
+> Workstation doesn't try to *be* the client's brain — that agent stays theirs. What lives *behind*
+> your endpoint is your call: a deterministic pipeline, a single LLM call, or a full agent loop.
+> The contract is the interface; the implementation is yours.
 
 ## The client experience
 1. **Connect to your service.** The client points their agent at it — add your **MCP** server, grab
