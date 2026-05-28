@@ -14,13 +14,23 @@ function getStripe(): Stripe {
   return new Stripe(key);
 }
 
+// Resolves the public landing URL (operator's deployed apps/web). Falls back to the deprecated
+// WORKSTATION_TOPUP_URL so existing deployments don't break on pull.
+function landingBase(): string {
+  return (
+    process.env.WORKSTATION_LANDING_URL ??
+    process.env.WORKSTATION_TOPUP_URL ??
+    "https://workstation.example"
+  );
+}
+
 // Create a Checkout session that buys `amountCents` of credits (1:1 USD cents → credits).
 export const createTopupCheckout = internalAction({
   args: { accountId: v.string(), amountCents: v.number() },
   returns: v.object({ url: v.string(), sessionId: v.string() }),
   handler: async (_ctx, { accountId, amountCents }) => {
     const stripe = getStripe();
-    const base = process.env.WORKSTATION_TOPUP_URL ?? "https://workstation.example/topup";
+    const base = landingBase();
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
@@ -35,8 +45,8 @@ export const createTopupCheckout = internalAction({
         },
       ],
       metadata: { type: "topup", accountId, credits: String(amountCents) },
-      success_url: `${base}?status=success&session={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${base}?status=cancel`,
+      success_url: `${base}/success?session={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${base}/cancel`,
     });
     return { url: session.url!, sessionId: session.id };
   },
@@ -89,7 +99,7 @@ export const createSignupCheckout = internalAction({
   returns: v.object({ url: v.string(), claimToken: v.string() }),
   handler: async (ctx, { amountCents, scopes }): Promise<{ url: string; claimToken: string }> => {
     const stripe = getStripe();
-    const base = process.env.WORKSTATION_TOPUP_URL ?? "https://workstation.example/topup";
+    const base = landingBase();
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
@@ -104,8 +114,8 @@ export const createSignupCheckout = internalAction({
         },
       ],
       metadata: { type: "signup", credits: String(amountCents), scopes: (scopes ?? []).join(",") },
-      success_url: `${base}?status=success&session={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${base}?status=cancel`,
+      success_url: `${base}/success?session={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${base}/cancel`,
     });
     const claimToken = `claim_${crypto.randomUUID().replace(/-/g, "")}`;
     await ctx.runMutation(api.claims.storeClaim, { claimToken, sessionId: session.id });
