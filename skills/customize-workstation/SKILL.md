@@ -77,7 +77,7 @@ Move from local mocks to a hosted, metered deployment. State what each step *req
    | Email (AgentMail) | create an inbox | `AGENTMAIL_API_KEY`, `AGENTMAIL_INBOX_ID` |
    | Phone (AgentPhone) | get a number/agent; register A2P 10DLC for live SMS | `AGENTPHONE_API_KEY`, `AGENTPHONE_AGENT_ID` |
    | Computer (Freestyle) | get an API key | `FREESTYLE_API_KEY` |
-   | Storage (R2/Archil) | create a bucket + CDN/disk | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_ACCESS_KEY_SECRET`, `R2_BUCKET_NAME`, `CDN_BASE_URL`, `ARCHIL_DISK_ID` |
+   | Storage (Cloudflare R2) | create a bucket + CDN | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_ACCESS_KEY_SECRET`, `R2_BUCKET_NAME`, `CDN_BASE_URL` |
    Re-run the same calls from Phase 1 against the live URL to confirm each connected primitive.
 3. **Make it paid.** Metering is per-op (costs in the registry; `metered:false` or `costCents:0` =
    free). For a paid deployment, set real `costCents`, then mint **scoped, funded** keys per client:

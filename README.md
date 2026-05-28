@@ -40,7 +40,7 @@ blank contract. Use them, swap the vendor behind any one, or add your own (a cap
 | **Phone** | reach / brief by SMS (voice, iMessage later) | AgentPhone |
 | **Email** | correspond, sign up for services, deliver assets | AgentMail |
 | **Computer** | run code, unrestricted, sandboxed (`Sandbox` port) | Freestyle VM (ffmpeg, no 5-min cap) |
-| **Storage** | hold state + deliverables, serve them (`FileSystem` port) | Archil disk on R2 + CDN |
+| **Storage** | hold state + deliverables, serve them (`FileSystem` port) | Cloudflare R2 + CDN |
 
 The **gateway** is the durable spine the agent actually calls: per-key accounts, per-call credit
 metering (402), opt-in rate limits (429), scoped keys (403), and a generic event ledger
@@ -203,7 +203,7 @@ Connect real providers one at a time by setting their keys (see `.env.example` a
 Working scaffold; **not yet integration-tested against live vendors or live Stripe.**
 
 - **Built:** hexagonal core; four primitives + gateway; real vendor adapters (AgentMail, AgentPhone,
-  Freestyle, Archil-via-R2) coded against the actual SDK/REST contracts; Convex backend; the Stripe
+  Freestyle, Cloudflare R2) coded against the actual SDK/REST contracts; Convex backend; the Stripe
   reference rail (inbound only — credits, top-ups, public self-serve signup), behind one swappable seam.
 - **Verified:** `tsc` typecheck clean; **11 unit tests pass** (credits, rate-limit, mock contracts);
   the Convex backend **codegens, typechecks, and deploys** to a local anonymous deployment; the
