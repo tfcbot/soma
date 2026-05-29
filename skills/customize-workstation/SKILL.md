@@ -11,8 +11,8 @@ metadata:
 # Set up a Workstation
 
 Workstation lets you ship your service as a metered **API + CLI + MCP** — one typed contract, three
-surfaces — that your clients' agents use and pay for headlessly. It ships five reference primitives
-(computer + storage as reference capabilities) behind one gateway (per-key accounts, credits, rate
+surfaces — that your clients' agents use and pay for headlessly. It ships two reference capabilities —
+Computer (sandbox) + Storage (filesystem) — behind one gateway (per-key accounts, credits, rate
 limits, scopes, an event ledger), but the real job is packaging *your* capabilities the same way.
 This skill takes a user from nothing to a deployed, paid Workstation in three phases. **Get each phase green before starting the next.** Work in small, verified steps; confirm
 each before moving on. The repo's `AGENTS.md` has the canonical add-a-capability recipe.
@@ -38,7 +38,7 @@ Recommend a **clean, dedicated, top-level directory named for the project** (e.g
 3. `bun install`.
 
 ## Phase 1 — Hello world, local, on mocks (NO vendor accounts)
-Goal: prove the whole loop works locally before touching any vendor. Every primitive has a mock,
+Goal: prove the whole loop works locally before touching any vendor. Every capability has a mock,
 so this needs zero external keys and no Convex login.
 
 1. `bun run typecheck` and `bun test` — green on mocks.
@@ -48,7 +48,7 @@ so this needs zero external keys and no Convex login.
    ```
 3. Mint a local dev key (full access, funded):
    ```bash
-   KEY=$(CONVEX_AGENT_MODE=anonymous bunx convex run accounts:mintKey '{"label":"dev","creditsCents":100000}' | jq -r .apiKey)
+   KEY=$(CONVEX_AGENT_MODE=anonymous bunx convex run accounts:mintKey '{"label":"dev","creditsCents":100000}' | bun -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.parse(s).apiKey))")
    ```
 4. **Hello world** — call a capability on its mock:
    ```bash
@@ -70,14 +70,18 @@ Move from local mocks to a hosted, metered deployment. State what each step *req
    npx convex login        # human, browser
    npx convex deploy       # creates/points at a cloud project → a public https://<name>.convex.site URL
    ```
-2. **Connect real vendors** (human-only account steps, then wire env). Any primitive whose keys
-   are absent simply stays on its mock — connect them one at a time:
-   | Primitive | The human must… | Env vars (set via `bunx convex env set NAME val`) |
+2. **Connect real vendors** (human-only account steps, then wire env). The reference adapters are
+   fully implemented (Computer → Vercel Sandbox, Storage → Cloudflare R2); each automatically falls
+   back to its mock when its env keys are absent (it does not throw). They are wired but not yet
+   live-tested against a real account — connect them one at a time and confirm:
+   | Capability | The human must… | Env vars (set via `bunx convex env set NAME val`) |
    |---|---|---|
    | Computer (Vercel Sandbox) | create a Vercel project + access token | `VERCEL_TEAM_ID`, `VERCEL_PROJECT_ID`, `VERCEL_TOKEN` |
-   Re-run the same calls from Phase 1 against the live URL to confirm each connected primitive.
-3. **Make it paid.** Metering is per-op (costs in the registry; `metered:false` or `costCents:0` =
-   free). For a paid deployment, set real `costCents`, then mint **scoped, funded** keys per client:
+   | Storage (Cloudflare R2) | create an R2 bucket + S3 API token | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_ACCESS_KEY_SECRET`, `R2_BUCKET_NAME`, `CDN_BASE_URL` |
+   Re-run the same calls from Phase 1 against the live URL to confirm each connected capability.
+3. **Make it paid.** Metering is per-op — each op carries a `costCents` field in
+   `modules/<cap>/operations.ts` (`metered:false` or `costCents:0` = free). For a paid deployment,
+   set real `costCents`, then mint **scoped, funded** keys per client:
    ```bash
    bunx convex run accounts:mintKey '{"label":"client-acme","scopes":["sandbox:exec","filesystem:write"],"creditsCents":50000}'
    ```
@@ -156,7 +160,7 @@ double-credit. Go live by swapping the `sk_test_…` key for an `sk_live_…` on
    `WORKSTATION_LANDING_URL` and `WORKSTATION_TOPUP_URL` (both still honored as fallbacks).
 
 ## Customizing — add a capability (vendor/vertical)
-A new primitive `xyz` = one folder `modules/xyz/` (Zod schemas + ops + port interface + adapter +
+A new capability `xyz` = one folder `modules/xyz/` (Zod schemas + ops + port interface + adapter +
 mock + `server.ts`) and three one-line registrations. **Follow the recipe in `AGENTS.md`.** Never
 edit `gateway.ts`/`invoke.ts`/`http.ts`.
 

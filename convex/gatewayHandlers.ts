@@ -9,6 +9,15 @@ export const gatewayHandlers: Record<
   string,
   (ctx: ActionCtx, account: Account, input: unknown) => Promise<unknown>
 > = {
+  // Public, keyless: derive each capability's backend from env presence (mirrors the real-or-mock
+  // decision each module's server.ts makes — sandbox needs VERCEL_TOKEN, filesystem needs R2 keys).
+  getHealth: async () => ({
+    status: "ok" as const,
+    backends: {
+      sandbox: process.env.VERCEL_TOKEN ? "vercel" : "mock",
+      filesystem: process.env.R2_ACCESS_KEY_ID ? "r2" : "mock",
+    },
+  }),
   getBalance: async (_ctx, account) => ({
     accountId: account.accountId,
     creditsCents: account.creditsCents,

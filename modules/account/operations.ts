@@ -3,8 +3,18 @@ import { op } from "../../packages/contract/src/op";
 
 const balance = z.object({ accountId: z.string(), creditsCents: z.number(), spentCents: z.number() });
 const event = z.object({ op: z.string(), costCents: z.number(), status: z.string(), ts: z.number() });
+// Per-capability backend signal: the real vendor adapter when its env keys are present, else "mock".
+const health = z.object({
+  status: z.literal("ok"),
+  backends: z.object({ sandbox: z.string(), filesystem: z.string() }),
+});
 
 export const ops = {
+  // Public (no key): reports whether each capability is on its real vendor or the mock fallback,
+  // so a fresh agent can tell a fully-wired deployment from a template still running on mocks.
+  getHealth: op({ method: "GET", path: "/v1/health", inputFrom: "query",
+    input: z.object({}), output: health, costCents: 0, auth: "public",
+    summary: "Report gateway health and which backend each capability is on", serve: { gateway: true } }),
   getBalance: op({ method: "GET", path: "/v1/balance", inputFrom: "query",
     input: z.object({}), output: balance, costCents: 0,
     summary: "Get the calling key's credit balance", serve: { gateway: true } }),

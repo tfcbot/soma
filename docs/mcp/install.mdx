@@ -1,0 +1,49 @@
+---
+title: "Install"
+description: "Wire the Workstation MCP server into your client."
+---
+
+The MCP server is not published to npm yet, so run it from the **local monorepo build** with
+`bun`. The entrypoint is `packages/mcp/src/index.ts`; it reads `WORKSTATION_API_URL` and
+`WORKSTATION_API_KEY` from the environment (see **[MCP overview](/mcp/index)**).
+
+## Claude Code
+
+Add it with the CLI (project- or user-scoped):
+
+```bash
+claude mcp add workstation \
+  --env WORKSTATION_API_URL=https://<your-deploy>.convex.site \
+  --env WORKSTATION_API_KEY=sk_workstation_... \
+  -- bun run --cwd /absolute/path/to/workstation/packages/mcp src/index.ts
+```
+
+This repo also ships a project-scoped **`.mcp.json`** at the root — open it, fill in the two env
+values, and Claude Code picks the server up automatically when run from the repo.
+
+## Claude Desktop
+
+Add an entry to `mcpServers` in your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "workstation": {
+      "command": "bun",
+      "args": [
+        "run",
+        "--cwd",
+        "/absolute/path/to/workstation/packages/mcp",
+        "src/index.ts"
+      ],
+      "env": {
+        "WORKSTATION_API_URL": "https://<your-deploy>.convex.site",
+        "WORKSTATION_API_KEY": "sk_workstation_..."
+      }
+    }
+  }
+}
+```
+
+Use an absolute path to your clone of the monorepo. Once npm distribution is set up, this will
+become a plain `npx`/`bunx` invocation — until then, the local path is required.

@@ -1,7 +1,9 @@
 import type { HttpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { internal, api } from "./_generated/api";
-import { json, paymentRequired, rateLimited, forbidden, resolveAccount, type Account } from "./auth";
+import {
+  json, paymentRequired, rateLimited, forbidden, resolveAccount, baseUrl, UpstreamError, type Account,
+} from "./auth";
 import { operations, scopeAllows, scopeOf, type OperationId } from "../packages/contract/src/index";
 import { gatewayHandlers } from "./gatewayHandlers";
 import { runPipeline, type Middleware, type GwRequest } from "./middleware";
@@ -12,15 +14,8 @@ import { runPipeline, type Middleware, type GwRequest } from "./middleware";
 // Adding an op never touches this file; adding a new concern = one more middleware.
 
 function topupUrl(accountId: string): string {
-  // WORKSTATION_BASE_URL = operator's deployed front door (where they wire a topup CTA);
-  // falls back to the prior WORKSTATION_LANDING_URL / WORKSTATION_TOPUP_URL names so existing
-  // deployments don't break on pull.
-  const base =
-    process.env.WORKSTATION_BASE_URL ??
-    process.env.WORKSTATION_LANDING_URL ??
-    process.env.WORKSTATION_TOPUP_URL ??
-    "https://workstation.example";
-  return `${base}/?account=${encodeURIComponent(accountId)}`;
+  // baseUrl() = operator's deployed front door (where they wire a topup CTA).
+  return `${baseUrl()}/?account=${encodeURIComponent(accountId)}`;
 }
 const isMetered = (op: GwRequest["op"]) => op.metered !== false && op.costCents > 0;
 
@@ -40,7 +35,7 @@ const authz: Middleware = {
   before(r) {
     if (!r.account) return; // public ops carry no key to scope-check
     if (!scopeAllows(r.account.scopes, r.op)) {
-      r.response = forbidden(`key not scoped for ${scopeOf(r.op)}`);
+      r.response = forbidden(scopeOf(r.op) ?? "(none)", r.account.scopes);
     }
   },
 };
@@ -96,8 +91,17 @@ const validate: Middleware = {
       ? Object.fromEntries(new URL(r.httpRequest.url).searchParams.entries())
       : await r.httpRequest.json().catch(() => ({}));
     const parsed = r.op.input.safeParse(raw);
-    if (!parsed.success) r.response = json({ error: "bad_request", message: parsed.error.message }, 400);
-    else r.input = parsed.data;
+    if (!parsed.success) {
+      // Surface Zod issues as a first-class array (path + message), not a stringified blob.
+      const issues = parsed.error.issues.map((i) => ({
+        path: i.path.join("."),
+        message: i.message,
+      }));
+      r.response = json(
+        { error: "invalid_request", message: "Request failed validation.", issues },
+        400,
+      );
+    } else r.input = parsed.data;
   },
 };
 
@@ -135,10 +139,16 @@ async function dispatch(r: GwRequest) {
   if ("gateway" in r.op.serve) {
     r.output = await gatewayHandlers[r.opId](r.ctx, r.account as Account, r.input);
   } else {
-    r.output = await r.ctx.runAction(internal.invoke.invoke, {
-      port: r.op.serve.port, method: r.op.serve.method, input: r.input,
-      accountId: r.account!.accountId,
-    });
+    // Port ops hit a vendor adapter (Vercel Sandbox / R2 / …). A throw here is an upstream
+    // failure, not the caller's fault — tag it so the top-level catch emits a retryable 5xx.
+    try {
+      r.output = await r.ctx.runAction(internal.invoke.invoke, {
+        port: r.op.serve.port, method: r.op.serve.method, input: r.input,
+        accountId: r.account!.accountId,
+      });
+    } catch (err) {
+      throw new UpstreamError((err as Error).message);
+    }
   }
 }
 
@@ -154,6 +164,13 @@ export function buildRouter(router: HttpRouter): void {
       try {
         await pipeline(r);
       } catch (err) {
+        // Vendor/upstream throws → retryable 5xx; domain/validation throws keep a stable 4xx.
+        if (err instanceof UpstreamError) {
+          return json(
+            { error: "upstream_error", message: err.message, retryable: true },
+            err.status,
+          );
+        }
         return json({ error: "operation_error", message: (err as Error).message }, 409);
       }
       return r.response ?? json(r.output);

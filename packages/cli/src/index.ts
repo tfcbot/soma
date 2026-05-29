@@ -4,6 +4,8 @@ import { operations } from "@workstation/contract";
 import { createClient } from "workstation";
 import { VERSION } from "./version";
 import { setApiKey, setApiUrl, getConfig, CONFIG_FILE } from "./client";
+import ops from "./commands/ops";
+import schema from "./commands/schema";
 
 // One subcommand per registry operation (registry-driven — adding an op adds a command for free).
 // Each takes a single --input JSON flag; the server validates it against the op's Zod schema.
@@ -11,7 +13,7 @@ const primitiveCommands: Record<string, ReturnType<typeof defineCommand>> = {};
 for (const [opId, op] of Object.entries(operations)) {
   primitiveCommands[opId] = defineCommand({
     meta: { name: opId, description: `${op.summary} (${op.method} ${op.path})` },
-    args: { input: { type: "string", description: "JSON input, e.g. '{\"to\":\"+1…\",\"body\":\"hi\"}'" } },
+    args: { input: { type: "string", description: "JSON input matching the op's schema (see `workstation schema " + opId + "`)" } },
     async run({ args }) {
       const workstation = createClient() as Record<string, (i: unknown) => Promise<unknown>>;
       const input = args.input ? JSON.parse(args.input) : {};
@@ -44,6 +46,6 @@ const version = defineCommand({
 runMain(
   defineCommand({
     meta: { name: "workstation", version: VERSION, description: "Workstation — a programmable body for an agent's brain." },
-    subCommands: { auth, version, ...primitiveCommands },
+    subCommands: { auth, version, ops, schema, ...primitiveCommands },
   }),
 );

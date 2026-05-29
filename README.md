@@ -160,6 +160,12 @@ server and clients share one definition:
 
 ## Customize with an agent
 
+> **For agents:** read **[AGENTS.md](./AGENTS.md)** first — it's the canonical recipe (add a
+> capability via `modules/<cap>/`) and the guardrails (never edit `gateway.ts`/`invoke.ts`/`http.ts`).
+> Then run the **`customize-workstation`** skill ([skills/customize-workstation/SKILL.md](./skills/customize-workstation/SKILL.md)).
+> One-command launch: `bun run setup` (clone-aware bootstrap); smoke check: `bun run smoke`
+> (a keyed call end-to-end on mocks).
+
 Point your agent at this repo and let it do the setup. Install the bundled skill:
 
 ```bash
@@ -176,6 +182,7 @@ wiring vendor env vars, minting scoped keys with credits, and deploying — driv
 ## Quickstart
 
 ```bash
+bun --version && node --version              # toolchain check — Bun + Node >= 22
 bun install
 bun test          # 11 unit tests, vendors mocked — no keys, no network
 
@@ -184,8 +191,9 @@ CONVEX_AGENT_MODE=anonymous bunx convex dev --once --typecheck enable
 
 # It runs end-to-end on MOCK adapters with zero vendor keys. Mint an admin key and try it:
 CONVEX_AGENT_MODE=anonymous bunx convex dev            # keep the local backend running
-# Mint a key (operator-owned). Prints the plaintext key once; 0-cost ops work on any balance:
-KEY=$(CONVEX_AGENT_MODE=anonymous bunx convex run accounts:mintKey '{"label":"owner"}' | jq -r .apiKey)
+# Mint a key (operator-owned). Prints the plaintext key once; 0-cost ops work on any balance.
+# jq-free parse (Bun reads the JSON — no extra tools to install):
+KEY=$(CONVEX_AGENT_MODE=anonymous bunx convex run accounts:mintKey '{"label":"owner"}' | bun -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.parse(s).apiKey))")
 # Free op — check the balance:
 curl -s http://127.0.0.1:3211/v1/balance -H "Authorization: Bearer $KEY"
 # Metered op — run a command in the sandbox (mock returns a fake result):
@@ -210,6 +218,13 @@ Connect real providers one at a time by setting their keys (see `.env.example` a
   ads/month for a Claude-native founder, primitive by primitive, plus adding a `publish` primitive.
 - [GETTING_STARTED.md](./GETTING_STARTED.md) — connect providers (or run on mocks), env vars, and
   a worked example.
+
+### Connecting over MCP
+
+The MCP server (and the CLI) are **not yet published to npm** — npm distribution is intentionally
+out of scope for now. Run the MCP server from the **local monorepo build** instead: build
+`packages/mcp` in your clone and point your agent's MCP client at that binary. The copy-paste config
+snippet lives in **[docs/mcp](./docs/mcp)**.
 
 ## Status
 
