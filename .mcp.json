@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "workstation": {
+      "command": "bun",
+      "args": ["run", "--cwd", "packages/mcp", "src/index.ts"],
+      "env": {
+        "WORKSTATION_API_URL": "https://<your-deploy>.convex.site",
+        "WORKSTATION_API_KEY": "sk_workstation_..."
+      }
+    }
+  }
+}

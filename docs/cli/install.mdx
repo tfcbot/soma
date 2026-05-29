@@ -3,13 +3,20 @@ title: "Install"
 description: "Install the Workstation CLI."
 ---
 
-```bash
-# Using bun (recommended):
-bunx workstation-cli --help
+The CLI is distributed as a self-contained binary named `workstation`, published to the
+operator's GitHub Releases. npm distribution is not set up — install from the release binary or
+run the local monorepo build.
 
-# Or the installer script (when published to GitHub Releases):
-curl -fsSL https://your-landing.example.com/install.sh | bash
+```bash
+# Installer script — pulls the binary from the operator's GitHub Releases:
+curl -fsSL https://<your-deploy>.example.com/install.sh | sh
+# → installs `workstation` to ~/.local/bin
+
+# Or run the CLI straight from the monorepo (no install):
+bun run packages/cli/src/index.ts --help
 ```
 
-The installer pulls binaries from the operator's GitHub Releases. See
-`packages/cli/install.sh` in the repo if you fork.
+The installer pulls the `workstation` binary from `tfcbot/workstation` GitHub Releases. See
+`packages/cli/install.sh` in the repo if you fork (change `REPO` to your fork).
+
+Once installed, point it at your deploy — see **[Auth](/cli/auth)**.

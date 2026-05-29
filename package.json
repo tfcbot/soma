@@ -11,6 +11,11 @@
   ],
   "scripts": {
     "dev": "convex dev --until-success",
+    "dev:local": "CONVEX_AGENT_MODE=anonymous convex dev",
+    "dev:once": "CONVEX_AGENT_MODE=anonymous convex dev --once --typecheck enable",
+    "setup": "bash scripts/setup.sh",
+    "smoke": "bash scripts/smoke.sh",
+    "verify": "bun run typecheck && bun test && bun run generate && git diff --exit-code spec/openapi docs/openapi && CONVEX_AGENT_MODE=anonymous convex dev --once --typecheck enable",
     "typecheck": "tsc --noEmit -p tsconfig.core.json",
     "test": "bun test",
     "generate": "bun scripts/gen-openapi.ts",
@@ -30,6 +35,9 @@
     "@types/bun": "latest",
     "turbo": "^2.3.0",
     "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=22"
   },
   "license": "MIT",
   "repository": {

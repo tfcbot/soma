@@ -1,0 +1,27 @@
+---
+title: "MCP overview"
+description: "Every operation is an MCP tool."
+---
+
+The Workstation MCP server exposes **one MCP tool per operation**, derived from the same
+contract that defines the API and CLI (`@workstation/contract`). The tool ids, their input
+schemas, and the underlying SDK all come from that single source of truth, so the three
+surfaces — API, CLI, MCP — can never drift.
+
+Point any MCP client (Claude Code, Claude Desktop, or any other) at your deployed Workstation
+and the agent gets every operation as a callable tool: `sandboxExec`, `sandboxPutFile`, and so
+on — each tool is named after its contract operation id.
+
+## How it connects
+
+The server runs over **stdio** and proxies tool calls to your deploy via the SDK. It reads two
+environment variables:
+
+- `WORKSTATION_API_URL` — your deploy's base URL, e.g. `https://<your-deploy>.convex.site`.
+- `WORKSTATION_API_KEY` — an account API key (`sk_workstation_...`). See
+  **[Get an API key](/get-api-key)**.
+
+If either is omitted, the SDK falls back to `~/.workstation/config.json` (written by
+`workstation auth`) and finally to `http://127.0.0.1:3211` for the base URL.
+
+See **[Install](/mcp/install)** to wire it into your client.

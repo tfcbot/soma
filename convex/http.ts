@@ -19,10 +19,10 @@ router.route({
     try {
       await ctx.runAction(internal.payments.handleStripeWebhook, { payload, signature });
     } catch {
-      return new Response(JSON.stringify({ error: "webhook_error" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "webhook_error", message: "Stripe webhook verification failed." }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      );
     }
     return new Response(JSON.stringify({ received: true }), {
       status: 200,

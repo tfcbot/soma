@@ -16,7 +16,201 @@
         "scheme": "bearer"
       }
     },
-    "schemas": {},
+    "schemas": {
+      "InvalidRequestError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "invalid_request"
+            ],
+            "description": "Stable machine-readable error code."
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable summary."
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path",
+                "message"
+              ]
+            },
+            "description": "First-class Zod validation issues (path + message), not a stringified blob."
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "issues"
+        ]
+      },
+      "UnauthorizedError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "unauthorized"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "signupUrl": {
+            "type": "string",
+            "description": "Self-provision endpoint (<baseUrl>/v1/signup) a fresh agent can call."
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "signupUrl"
+        ]
+      },
+      "PaymentRequiredError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "payment_required"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "required": {
+            "type": "number",
+            "description": "Cost of the operation, in credit cents."
+          },
+          "balance": {
+            "type": "number",
+            "description": "Current key balance, in credit cents."
+          },
+          "shortfall": {
+            "type": "number",
+            "description": "required - balance, in credit cents."
+          },
+          "topupUrl": {
+            "type": "string",
+            "description": "Stripe Checkout URL to top up THIS key."
+          },
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "number"
+          },
+          "detail": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "required",
+          "balance",
+          "shortfall",
+          "topupUrl"
+        ]
+      },
+      "ForbiddenError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "forbidden"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "requiredScope": {
+            "type": "string",
+            "description": "Scope the operation requires."
+          },
+          "grantedScopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Scopes the calling key actually holds."
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "requiredScope",
+          "grantedScopes"
+        ]
+      },
+      "RateLimitedError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "rate_limited"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "retryAfter": {
+            "type": "number",
+            "description": "Seconds to wait before retrying (mirrors the Retry-After header)."
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "retryAfter"
+        ]
+      },
+      "UpstreamError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "upstream_error"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "retryable": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "description": "Vendor/upstream failure — safe to retry."
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "retryable"
+        ]
+      }
+    },
     "parameters": {}
   },
   "paths": {
@@ -73,11 +267,85 @@
               }
             }
           },
+          "400": {
+            "description": "Invalid request (input failed validation)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized (missing or invalid API key)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
           "402": {
-            "description": "Payment Required (metered key out of credits)"
+            "description": "Payment Required (metered key out of credits)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRequiredError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (key lacks the required scope)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict (upstream/operation error — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Too Many Requests (rate limited)"
+            "description": "Too Many Requests (rate limited)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
           }
         }
       }
@@ -132,11 +400,85 @@
               }
             }
           },
+          "400": {
+            "description": "Invalid request (input failed validation)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized (missing or invalid API key)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
           "402": {
-            "description": "Payment Required (metered key out of credits)"
+            "description": "Payment Required (metered key out of credits)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRequiredError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (key lacks the required scope)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict (upstream/operation error — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Too Many Requests (rate limited)"
+            "description": "Too Many Requests (rate limited)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
           }
         }
       },
@@ -179,11 +521,75 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized (missing or invalid API key)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
           "402": {
-            "description": "Payment Required (metered key out of credits)"
+            "description": "Payment Required (metered key out of credits)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRequiredError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (key lacks the required scope)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict (upstream/operation error — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Too Many Requests (rate limited)"
+            "description": "Too Many Requests (rate limited)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
           }
         }
       }
@@ -226,11 +632,75 @@
               }
             }
           },
-          "402": {
-            "description": "Payment Required (metered key out of credits)"
+          "400": {
+            "description": "Invalid request (input failed validation)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized (missing or invalid API key)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (key lacks the required scope)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict (upstream/operation error — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Too Many Requests (rate limited)"
+            "description": "Too Many Requests (rate limited)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
           }
         }
       }
@@ -291,11 +761,85 @@
               }
             }
           },
+          "400": {
+            "description": "Invalid request (input failed validation)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized (missing or invalid API key)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
           "402": {
-            "description": "Payment Required (metered key out of credits)"
+            "description": "Payment Required (metered key out of credits)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRequiredError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (key lacks the required scope)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict (upstream/operation error — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Too Many Requests (rate limited)"
+            "description": "Too Many Requests (rate limited)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
           }
         }
       },
@@ -338,11 +882,75 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized (missing or invalid API key)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
           "402": {
-            "description": "Payment Required (metered key out of credits)"
+            "description": "Payment Required (metered key out of credits)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRequiredError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (key lacks the required scope)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict (upstream/operation error — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Too Many Requests (rate limited)"
+            "description": "Too Many Requests (rate limited)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
           }
         }
       }
@@ -388,11 +996,65 @@
               }
             }
           },
-          "402": {
-            "description": "Payment Required (metered key out of credits)"
+          "401": {
+            "description": "Unauthorized (missing or invalid API key)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (key lacks the required scope)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict (upstream/operation error — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Too Many Requests (rate limited)"
+            "description": "Too Many Requests (rate limited)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
           }
         }
       }
@@ -435,11 +1097,145 @@
               }
             }
           },
-          "402": {
-            "description": "Payment Required (metered key out of credits)"
+          "401": {
+            "description": "Unauthorized (missing or invalid API key)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (key lacks the required scope)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict (upstream/operation error — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Too Many Requests (rate limited)"
+            "description": "Too Many Requests (rate limited)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/health": {
+      "get": {
+        "summary": "Report gateway health and which backend each capability is on",
+        "operationId": "getHealth",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ok"
+                      ]
+                    },
+                    "backends": {
+                      "type": "object",
+                      "properties": {
+                        "sandbox": {
+                          "type": "string"
+                        },
+                        "filesystem": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "sandbox",
+                        "filesystem"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "backends"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict (upstream/operation error — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
           }
         }
       }
@@ -480,11 +1276,65 @@
               }
             }
           },
-          "402": {
-            "description": "Payment Required (metered key out of credits)"
+          "401": {
+            "description": "Unauthorized (missing or invalid API key)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (key lacks the required scope)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict (upstream/operation error — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Too Many Requests (rate limited)"
+            "description": "Too Many Requests (rate limited)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
           }
         }
       }
@@ -551,11 +1401,65 @@
               }
             }
           },
-          "402": {
-            "description": "Payment Required (metered key out of credits)"
+          "401": {
+            "description": "Unauthorized (missing or invalid API key)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (key lacks the required scope)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict (upstream/operation error — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Too Many Requests (rate limited)"
+            "description": "Too Many Requests (rate limited)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
           }
         }
       }
@@ -605,11 +1509,75 @@
               }
             }
           },
-          "402": {
-            "description": "Payment Required (metered key out of credits)"
+          "400": {
+            "description": "Invalid request (input failed validation)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized (missing or invalid API key)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (key lacks the required scope)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict (upstream/operation error — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Too Many Requests (rate limited)"
+            "description": "Too Many Requests (rate limited)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
           }
         }
       }
@@ -669,11 +1637,45 @@
               }
             }
           },
-          "402": {
-            "description": "Payment Required (metered key out of credits)"
+          "400": {
+            "description": "Invalid request (input failed validation)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidRequestError"
+                }
+              }
+            }
           },
-          "429": {
-            "description": "Too Many Requests (rate limited)"
+          "409": {
+            "description": "Conflict (upstream/operation error — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
           }
         }
       }
@@ -732,11 +1734,45 @@
               }
             }
           },
-          "402": {
-            "description": "Payment Required (metered key out of credits)"
+          "400": {
+            "description": "Invalid request (input failed validation)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidRequestError"
+                }
+              }
+            }
           },
-          "429": {
-            "description": "Too Many Requests (rate limited)"
+          "409": {
+            "description": "Conflict (upstream/operation error — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
           }
         }
       }
@@ -789,11 +1825,75 @@
               }
             }
           },
-          "402": {
-            "description": "Payment Required (metered key out of credits)"
+          "400": {
+            "description": "Invalid request (input failed validation)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized (missing or invalid API key)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (key lacks the required scope)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict (upstream/operation error — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Too Many Requests (rate limited)"
+            "description": "Too Many Requests (rate limited)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable (vendor/upstream failure — retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
           }
         }
       }

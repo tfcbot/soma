@@ -91,6 +91,18 @@
             ]
           }
         ]
+      },
+      {
+        "tab": "MCP",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "mcp/index",
+              "mcp/install"
+            ]
+          }
+        ]
       }
     ],
     "global": {
