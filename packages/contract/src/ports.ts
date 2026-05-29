@@ -1,13 +1,9 @@
-import type { PhonePort } from "../../../modules/phone/operations";
-import type { EmailPort } from "../../../modules/email/operations";
 import type { SandboxPort } from "../../../modules/sandbox/operations";
 import type { FileSystemPort } from "../../../modules/filesystem/operations";
 import type { Operations, OperationId } from "./operations";
 
 // The bag of ports the generic dispatcher resolves against. Add a capability = one line here.
 export interface Ports {
-  phone: PhonePort;
-  email: EmailPort;
   sandbox: SandboxPort;
   filesystem: FileSystemPort;
 }

@@ -2,7 +2,7 @@
   "name": "workstation-monorepo",
   "version": "0.1.0",
   "private": true,
-  "description": "Workstation — a headless contract for agents that do work: four primitives (phone, email, computer, storage) behind one metered, pay-as-you-go gateway.",
+  "description": "Workstation — a metered key gateway for AI services: keys, access control, credits, signup/topup, and reference capabilities (compute + storage) behind one typed contract that emits API + CLI + MCP.",
   "type": "module",
   "packageManager": "bun@1.3.10",
   "workspaces": [
@@ -21,7 +21,6 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1053.0",
     "@vercel/sandbox": "^2.0.1",
-    "agentmail": "^0.5.3",
     "convex": "^1.31.0",
     "stripe": "^22.2.0",
     "zod": "^3.23.8"

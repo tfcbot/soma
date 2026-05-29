@@ -32,15 +32,14 @@ operation in one place and every surface updates in lockstep (see
 [Extending the gateway](#extending-the-gateway-type-safe)). That's how you ship a service to agents
 on every channel they speak — in one go.
 
-## Batteries included — four primitives + a gateway
-The reference build ships four ready capabilities, so you start from a working service rather than a
-blank contract. Use them, swap the vendor behind any one, or add your own (a capability = one
-`modules/<name>/` folder).
+## What you get: a metered gateway + reference capabilities
+**The framework primitives are the gateway concerns** — keys, access control (scopes), per-call
+credit metering (402), rate limits (429), event ledger, signup/topup. **Reference capabilities** —
+**Compute** (a persistent sandbox) and **Storage** (object store + CDN) — ship as a working
+baseline; replace either with your own vendor, or add new capabilities with the one-folder recipe.
 
 | Primitive | What it gives the agent | Reference adapter |
 |---|---|---|
-| **Phone** | reach / brief by SMS (voice, iMessage later) | AgentPhone |
-| **Email** | correspond, sign up for services, deliver assets | AgentMail |
 | **Computer** | run code, unrestricted, sandboxed (`Sandbox` port) | Vercel Sandbox (persistent microVM, ffmpeg) |
 
 The **gateway** is the durable spine the agent actually calls: per-key accounts, per-call credit
@@ -55,7 +54,7 @@ first build is a **single-node** deployment (SPEC.md §11).
 packages/contract/  the typed operation registry (Zod) + port interfaces — THE single source of truth
 core/        pure domain: credits + rate-limit math (+ their tests). No vendor code.
 modules/     one folder per capability — operations + a real adapter + a mock + server wiring
-             (phone, email, sandbox, filesystem; account = gateway-only ops)
+             (sandbox, filesystem; account = gateway-only ops)
 convex/      the host / gateway
   gateway.ts          builds every route from the registry: auth → 403 → 429 → 402 → dispatch → event
   invoke.ts           "use node" — ONE generic dispatcher; calls the right module adapter method
@@ -100,8 +99,9 @@ CONVEX_AGENT_MODE=anonymous bunx convex dev  # local backend on mock adapters
 
 What you customize:
 
-- **The four primitives** — each is a capability folder with a real adapter + a mock (`modules/<primitive>/`).
-  Swap a vendor by writing a new adapter against the same port; the contract never changes.
+- **The reference capabilities** — each is a capability folder with a real adapter + a mock
+  (`modules/<name>/`). Swap a vendor by writing a new adapter against the same port; add new
+  capabilities the same way. The contract never changes.
 - **The front door** — `apps/web/` (landing + `/success` + `/cancel`) and `docs/` (Mintlify) ship as
   empty-shell scaffolds the operator brands. The docs auto-render the API Reference from the same
   contract the gateway serves — `bun run generate` writes the spec to both `spec/openapi/` and
@@ -186,20 +186,21 @@ CONVEX_AGENT_MODE=anonymous bunx convex dev --once --typecheck enable
 CONVEX_AGENT_MODE=anonymous bunx convex dev            # keep the local backend running
 # Mint a key (operator-owned). Prints the plaintext key once; 0-cost ops work on any balance:
 KEY=$(CONVEX_AGENT_MODE=anonymous bunx convex run accounts:mintKey '{"label":"owner"}' | jq -r .apiKey)
-# Call a primitive (free op shown; phone/email/sandbox/fs all work the same way):
+# Free op — check the balance:
 curl -s http://127.0.0.1:3211/v1/balance -H "Authorization: Bearer $KEY"
-curl -s -X POST http://127.0.0.1:3211/v1/phone/messages \
+# Metered op — run a command in the sandbox (mock returns a fake result):
+curl -s -X POST http://127.0.0.1:3211/v1/sandbox/exec \
   -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-  -d '{"to":"+15551230000","body":"hello from the workstation"}'
+  -d '{"command":"echo hello from the workstation"}'
 ```
 
 Connect real providers one at a time by setting their keys (see `.env.example` and
-[GETTING_STARTED.md](./GETTING_STARTED.md)); any primitive without a key uses its mock.
+[GETTING_STARTED.md](./GETTING_STARTED.md)); any capability without a key uses its mock.
 
 ## Docs
 
 - [SPEC.md](./SPEC.md) — the **normative protocol**, implementable by anyone (OAuth-style):
-  roles, conformance, the four primitive interfaces, the Gateway HTTP API + per-key accounts +
+  roles, conformance, the reference capability interfaces, the Gateway HTTP API + per-key accounts +
   metering (402) + rate limits (429) + the event ledger, security, extensibility, and the
   single-node Convex reference deployment.
 - [THESIS.md](./THESIS.md) — the **reasoning and philosophy**: brain/workstation split, dependency
@@ -214,9 +215,10 @@ Connect real providers one at a time by setting their keys (see `.env.example` a
 
 Working scaffold; **not yet integration-tested against live vendors or live Stripe.**
 
-- **Built:** hexagonal core; four primitives + gateway; real vendor adapters (AgentMail, AgentPhone,
-  Vercel Sandbox, Cloudflare R2) coded against the actual SDK/REST contracts; Convex backend; the Stripe
-  reference rail (inbound only — credits, top-ups, public self-serve signup), behind one swappable seam.
+- **Built:** hexagonal core; metered gateway (keys, scopes, credits, rate limits, events,
+  signup/topup); reference capabilities (Vercel Sandbox + Cloudflare R2) coded against the actual
+  SDK/REST contracts; Convex backend; the Stripe reference rail (inbound only — credits, top-ups,
+  public self-serve signup), behind one swappable seam.
 - **Verified:** `tsc` typecheck clean; **11 unit tests pass** (credits, rate-limit, mock contracts);
   the Convex backend **codegens, typechecks, and deploys** to a local anonymous deployment; the
   gateway is **smoke-tested live over HTTP in mock mode** (keyed call → 200, no-key on a metered op

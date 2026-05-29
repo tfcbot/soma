@@ -1,145 +1,117 @@
-# Scenarios — the idea made concrete
+# Scenarios — what an agent-native service looks like
 
-**Workstation is a headless contract for agents that do work.** Companion to [SPEC.md](./SPEC.md): the
-spec is abstract on purpose, so this doc plays out a real service end to end.
+**Workstation is a metered key gateway for AI services.** Companion to [SPEC.md](./SPEC.md), which
+is abstract on purpose; this doc plays out the actual buyer/seller loop end to end.
 
-One principle runs through every scenario: **the workstation gives the agent primitives; the agent
-does the work.** Workstation authenticates the key, meters each call, and records what happened —
-phone, email, compute, storage, behind one gateway. Sequencing, retries, and "is this done" live in
-the agent (the brain), never in the workstation.
+One principle: **the buyer's agent does the work — including buying.** The operator exposes a
+metered HTTP contract; the buyer's agent (Claude Code, Cursor, custom) calls it, settles
+tap-to-pay links the operator surfaces, and pays per call. The framework is the rail; the operator
+is the service; the agent is the consumer.
 
 ---
 
-## Scenario 1 — A creative agency delivering 10 ads per month
+## Scenario — Alex uses Overlayz from Claude Code
 
 ### The cast
+- **Alex** — a marketer running TikTok ads. Lives in Claude Code in their terminal.
+- **Overlayz** — an operator-built Workstation. It burns TikTok-safe text overlays on video **and**
+  inline-scores the caption text against Meta/TikTok ad policy. Sold per call.
 
-- **Maya** — founder of a DTC sleep-supplement brand. She lives in Claude and uses her own agent
-  for everything. She does not want to own ad production: she briefs, and she receives.
-- **Lumen** — a new-style creative agency. It sells neither dashboards nor hourly design. It
-  provisions an assistant per client and owns the agent (and its QA) that drives it.
-- **Workstation** — the headless platform: five primitives behind one metered gateway. It operates no
-  agents; Lumen runs on top of it.
+### Step 0 — Discovery
+Alex sees Overlayz mentioned on a podcast. They tell Claude Code:
+> *"I want to use Overlayz to caption my next 10 TikTok ads."*
 
-Maya owns no plumbing — no VPS, no API keys, no vendor accounts, no phone or inbox plugged in,
-no dashboard to log into. She briefs, and she receives.
+Claude Code looks up the Overlayz MCP server (or hits its OpenAPI directly — Workstation generates
+both from one contract, so either works).
 
-### Step 0 — Provisioning (Lumen, once)
+### Step 1 — Signup (one-click pay)
+Claude Code calls `POST https://api.overlayz.dev/v1/signup {amountCents: 2000}` → returns
+`{url, claimToken}`. It surfaces the link to Alex:
+> *"Overlayz wants $20 to get started — here's the Stripe link. Tap to pay."*
 
-Lumen stands up an assistant for Maya: four primitives, deployed on her behalf, reached through one
-gateway.
+Alex taps, pays with a saved card. Claude Code is polling `/v1/signup/claim` in the background.
+~30 seconds later it gets `{status: "completed", apiKey, creditsCents: 2000}` and saves the key
+to `~/.workstation/config.json`. Alex is back at work.
 
-| Primitive | Provisioned as |
-|---|---|
-| **Phone** | `+1 (415) 555-0123` — Maya texts this to brief and to hear status |
-| **Email** | `studio@maya-brand.workstation.run` (client-facing) + a hidden `ops@…` inbox for signups/receipts |
-| **Computer** | a Linux sandbox with the production toolchain (ffmpeg + the gen pipeline) |
-| **Storage** | an object store for the heavy MP4s, with a public CDN for delivery |
+### Step 2 — First call: caption + risk score in one shot
+Alex says:
+> *"Caption `ad-1.mp4` with 'BUY NOW — LIMITED TIME', top position."*
 
-Lumen mints a metered API key and loads it with credits. Maya approves the spend and closes the
-tab. Lumen's agent will coordinate the actual work.
+Claude Code:
+1. Uploads `ad-1.mp4` to Overlayz's Storage (`PUT /v1/fs/objects {public: true}`) → CDN URL.
+2. Calls `POST /v1/overlay {videoUrl, text: "BUY NOW — LIMITED TIME", position: "top"}`.
 
-### Step 1 — The brief
+Overlayz's response — captioned video **and** the ad-safety read, in one call:
+```json
+{
+  "resultUrl": "https://cdn.overlayz.dev/out/abc.mp4",
+  "riskScore": 0.78,
+  "risks": [
+    { "policy": "Meta Advertising — urgency claims",        "snippet": "LIMITED TIME" },
+    { "policy": "TikTok Ads — high-pressure language",       "snippet": "BUY NOW" }
+  ]
+}
+```
 
-From inside her own Claude, Maya says: *"Send my new-month ad brief to the studio."* Her agent
-hands the brief to Lumen's agent — by email or phone, or a shared channel. Lumen's agent now holds
-the work and tracks the ten ads in its own plan. (She could equally have texted the brief to the
-phone number in plain English — same loop, different channel.)
+Claude Code surfaces it:
+> *"Done — captioned video [here]. **Risk score 0.78** (high). Two policy flags: 'urgency claims'
+> (Meta) and 'high-pressure language' (TikTok). Want me to rewrite and re-render?"*
 
-### Step 2 — The loop, per ad
+Alex: "yes, soften it." Claude Code re-calls `/v1/overlay` with new text, gets a risk score of
+0.12, ships it.
 
-Lumen's agent works each ad by calling the gateway primitives directly. Every call is authenticated
-by the key, metered against the credit balance, and recorded as an event:
+Every call debits credits per the operator's pricing (`overlay` at $0.50, storage write at $0.02).
+Alex's $20 buys ~40 captioned ads — and the compliance check costs nothing extra, because Overlayz
+bundled it into the same op. **One call, two values, one debit.**
 
-1. **Storage (read)** — `GET /v1/fs/objects`: pull the brand kit and prior winners.
-2. **Computer** — `POST /v1/sandbox/exec`: generate the hero frame, run the gen pipeline for a 9:16
-   UGC clip, burn captions, normalize audio. Unrestricted, isolated; the sandbox session persists
-   across calls, so a later `exec`/`getFile` sees the same working tree.
-3. **Email** — when the work needs it: pull a licensed track from the brand kit, sign up for a tool
-   (confirmation lands in the `ops@` inbox), and deliver the finished cut to Maya. Correspondence and
-   signups route through the inbox, archived for the record.
-4. **Storage (write)** — `PUT /v1/fs/objects` (public): the render lands in the store with a CDN url.
+### Step 3 — Out of credits
+After the tenth ad, Alex is down to $0.30 in credits. The next overlay call returns:
+```json
+{
+  "type": "https://paymentauth.org/problems/payment-required",
+  "status": 402,
+  "detail": "Operation overlay costs 50 credits; balance is 30.",
+  "topupUrl": "https://overlayz.dev/?account=acc_..."
+}
+```
+Claude Code surfaces:
+> *"Out of credits. Top up $10 to keep going? [link]"*
 
-Each gateway call is metered against the credit balance (visible at `GET /v1/balance`). If credits
-run low mid-batch, calls return `402` with a `topupUrl`; the agent pauses and asks rather than
-failing silently.
+Same one-tap flow as signup. Alex pays. Back to working.
 
-### Step 3 — QA and observability (Lumen's product)
+### Step 4 — Wrap
+Alex has 10 captioned, risk-scored TikTok ads, all sitting on Overlayz's CDN. They paste the URLs
+into Ads Manager. Total cost: $25. Total time: ~20 minutes. No SaaS dashboard, no contractor, no
+`apt-get install ffmpeg`, no separate compliance vendor.
 
-A Lumen reviewer — human plus a QA agent — inspects the work: the sandbox contents, the stored
-renders, and the account's **event ledger** (`GET /v1/events` — every primitive call, its cost,
-ok/error). No screen-share, no "can you send me the files," no VPS spelunking; it is all
-observable. Weak ads get reworked; the agent reruns the relevant calls. Lumen carries the
-operational burden so Maya maintains nothing.
-
-### Step 4 — Delivery
-
-When the batch is ready the agent uses a primitive: `POST /v1/email/messages` with the finished MP4s
-attached by CDN url ("October ads — batch 1, 8 ready"), and a `POST /v1/phone/messages` SMS:
-*"8 of your 10 October ads are ready — sent to your email. 2 in rework."* Maya reviews from her own
-Claude or her phone. No login. A Provider that wants push can wire the optional event webhook to
-fan activity out to a channel.
-
-### Step 5 — Revision
-
-Maya: *"Ad 4's hook is flat — make it punchier."* She tells her agent, which relays to Lumen's
-agent; it reruns the compute, storage, and email primitives for that one ad and re-delivers.
-Approval is something Maya says and the agents track.
-
-By month end: 10 ads delivered, every gateway call itemized in the event ledger, billed inbound via
-Stripe, zero infrastructure touched by Maya.
-
-### Why this isn't just "an agency with extra steps"
-
-| Old way | This way |
-|---|---|
-| Client gets a Slack channel + Drive folder + status calls | Client briefs by text/email and receives by email; the agent does the rest |
-| Agency sets the client up with a VPS, tools, and logins | Client owns no plumbing; the assistant *is* the plumbing, abstracted away |
-| Costs arrive as an opaque monthly invoice | Every gateway call metered (events + credits), billed inbound via Stripe |
-| Agency bills hours; quality depends on babysitting | Agency bills the deliverable; QA is cheap because the sandbox and event ledger are observable |
-| Client manages accounts and dashboards | No dashboard, no account — just a body their agent drives |
-
-It behaves like SaaS with nothing to log into. Maya's relationship is *brief in, assets out, talk
-to it like a person.* Lumen's product is the agent and its QA, made economical by full sandbox
-visibility over a metered, observable gateway.
+### What didn't happen
+- **No SaaS dashboard** Alex had to log into.
+- **No vendor accounts** (Twilio, ffmpeg, Whisper, an ad-policy API) Alex had to wire.
+- **No concierge agent** in between. Claude Code talked to the API directly.
+- **No "comms" primitive** — when Alex shares results, that's Claude Code's job over whatever it
+  already uses (Slack, email, file paste).
 
 ---
 
-## Scenario 2 — Extending the body (a new primitive)
+## The shape of every Workstation scenario
 
-Three months in, Maya asks Lumen to also *publish* the winning ads, not just deliver them.
-
-Lumen adds a primitive — `publish`, wrapping a social-posting vendor — the way every endpoint is
-born: one entry in the typed operation registry (path, input/output schema, credit cost) plus one
-handler. Because the registry is the single source of truth, the new operation appears at once in
-the server, the typed SDK, the MCP tools, the CLI, and the OpenAPI spec — metered and observed like
-any other call:
+A buyer using an agent (Claude Code, Cursor, custom) **signs up via one-click pay**, gets a
+**metered key**, and their agent **calls the operator's services**. Each call debits credits. A
+`402` triggers another tap-to-pay. The framework provides keys + access control + metering +
+signup + the typed contract; the operator provides the capabilities they monetize.
 
 ```
-POST /v1/publish/posts
-{ "platform": "meta", "mediaUrl": "https://cdn…/ad-04.mp4", "schedule": "2026-10-14T09:00Z" }
+buyer's agent  ──HTTP──►  operator's Workstation
+  signs up                   gateway:       auth → scopes → meter → events
+  pays one-tap               capabilities:  the operator's services
+  calls per work             credits:       prepaid, debited per call
+  reads results              402:           topup link, same tap-to-pay shape
 ```
 
-The agent gains one more capability: take a finished ad and push it live (any ad spend is the
-principal's own, authorized and settled with her method), reporting back through phone and email. An `analytics` primitive arrives
-the same way — pull performance, feed it into next month's brief. **Primitives are additive, and
-adding one is type-checked, not a rewire.**
+The deliverable is the URL (or JSON) the operator's service returns. Status updates, sharing, and
+follow-up happen in whatever surface the buyer's agent already lives in. **Workstation's job is the
+metered rail and the contract, not the UX around it.**
 
----
-
-## The shape of every scenario
-
-Strip the creative work away and the loop is identical for any service — bookkeeping, research,
-lead-gen, ops:
-
-```
-The principal briefs their agent (over phone/email, or any channel).
-The AGENT coordinates the work, calling primitives through the metered gateway:
-  run code on the COMPUTER · read/write STORAGE · sign up & deliver via EMAIL/PHONE
-Every call is authenticated, metered (credits → 402), and recorded (event ledger).
-The provider QAs by peering into the sandbox and the event ledger.
-The agent delivers through the email/phone primitive and reports back.
-```
-
-The deliverable is interchangeable. The five primitives and the metered gateway are the constant —
-and the work itself belongs to the brain.
+Replace "Overlayz" with any service shape — a render farm, a niche dataset API, a vendor
+aggregator, a long-job worker — and the loop is identical. The operator picks the capabilities;
+the gateway makes them sellable per call.

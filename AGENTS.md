@@ -1,6 +1,6 @@
 # AGENTS.md — extending & maintaining Workstation
 
-Workstation is a **headless contract for agents that do work**: four primitives (phone, email,
+Workstation is a **headless contract for agents that do work**: two reference capabilities (
 computer, storage) exposed through one metered gateway. The contract is a **typed Zod registry**
 assembled from **self-contained capability modules**. The server router, SDK, CLI, MCP tools, and
 OpenAPI spec all derive from it. No codegen — in this monorepo, shared types give end-to-end safety.
@@ -89,7 +89,7 @@ so denied calls never charge):
 
 Empty scopes = full environment (an unscoped key reaches everything). Gateway ops (`balance`,
 `events`) are always allowed. Mint a scoped key:
-`bunx convex run accounts:mintKey '{"scopes":["store:listProducts","email:send"],"creditsCents":5000}'`
+`bunx convex run accounts:mintKey '{"scopes":["sandbox:exec","filesystem:write"],"creditsCents":5000}'`
 Out-of-scope calls return `403 forbidden`. This is how a key becomes a *pre-configured environment*
 with a defined capability set.
 

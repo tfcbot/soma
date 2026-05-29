@@ -36,10 +36,8 @@
             ]
           },
           {
-            "group": "Primitives",
+            "group": "Reference capabilities",
             "pages": [
-              "primitives/phone",
-              "primitives/email",
               "primitives/computer",
               "primitives/storage"
             ]
@@ -58,18 +56,6 @@
               "POST /v1/topup/confirm",
               "GET /v1/balance",
               "GET /v1/events"
-            ]
-          },
-          {
-            "group": "Phone",
-            "pages": [
-              "POST /v1/phone/messages"
-            ]
-          },
-          {
-            "group": "Email",
-            "pages": [
-              "POST /v1/email/messages"
             ]
           },
           {

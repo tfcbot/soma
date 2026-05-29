@@ -12,7 +12,7 @@ metadata:
 
 Workstation lets you ship your service as a metered **API + CLI + MCP** — one typed contract, three
 surfaces — that your clients' agents use and pay for headlessly. It ships five reference primitives
-(phone, email, computer, storage) behind one gateway (per-key accounts, credits, rate
+(computer + storage as reference capabilities) behind one gateway (per-key accounts, credits, rate
 limits, scopes, an event ledger), but the real job is packaging *your* capabilities the same way.
 This skill takes a user from nothing to a deployed, paid Workstation in three phases. **Get each phase green before starting the next.** Work in small, verified steps; confirm
 each before moving on. The repo's `AGENTS.md` has the canonical add-a-capability recipe.
@@ -50,11 +50,11 @@ so this needs zero external keys and no Convex login.
    ```bash
    KEY=$(CONVEX_AGENT_MODE=anonymous bunx convex run accounts:mintKey '{"label":"dev","creditsCents":100000}' | jq -r .apiKey)
    ```
-4. **Hello world** — call a primitive on its mock:
+4. **Hello world** — call a capability on its mock:
    ```bash
-   curl -s -X POST http://127.0.0.1:3211/v1/phone/messages \
+   curl -s -X POST http://127.0.0.1:3211/v1/sandbox/exec \
      -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-     -d '{"to":"+15551230000","body":"hello workstation"}'      # → {"id":"sms_mock_1"}
+     -d '{"command":"echo hello workstation"}'       # → mock returns a fake stdout
    ```
 5. Confirm the gateway works: `GET /v1/balance` (credits debited), `GET /v1/events` (the call is
    logged). Optionally exercise `sandbox/exec`, `fs/objects` (base64) on mocks.
@@ -74,14 +74,12 @@ Move from local mocks to a hosted, metered deployment. State what each step *req
    are absent simply stays on its mock — connect them one at a time:
    | Primitive | The human must… | Env vars (set via `bunx convex env set NAME val`) |
    |---|---|---|
-   | Email (AgentMail) | create an inbox | `AGENTMAIL_API_KEY`, `AGENTMAIL_INBOX_ID` |
-   | Phone (AgentPhone) | get a number/agent; register A2P 10DLC for live SMS | `AGENTPHONE_API_KEY`, `AGENTPHONE_AGENT_ID` |
    | Computer (Vercel Sandbox) | create a Vercel project + access token | `VERCEL_TEAM_ID`, `VERCEL_PROJECT_ID`, `VERCEL_TOKEN` |
    Re-run the same calls from Phase 1 against the live URL to confirm each connected primitive.
 3. **Make it paid.** Metering is per-op (costs in the registry; `metered:false` or `costCents:0` =
    free). For a paid deployment, set real `costCents`, then mint **scoped, funded** keys per client:
    ```bash
-   bunx convex run accounts:mintKey '{"label":"client-acme","scopes":["phone:sendSms","email:send"],"creditsCents":50000}'
+   bunx convex run accounts:mintKey '{"label":"client-acme","scopes":["sandbox:exec","filesystem:write"],"creditsCents":50000}'
    ```
    - Scopes: `"*"`, `"<port>:*"`, or `"<port>:<method>"`; empty = full access; out-of-scope → 403.
    - Top up later: `accounts:grantCredits '{"accountId":"acc_…","amountCents":N}'`. Exhausted → 402.
@@ -169,4 +167,4 @@ edit `gateway.ts`/`invoke.ts`/`http.ts`.
 
 ## References
 - `AGENTS.md` — add-a-capability recipe + import rules.
-- `SPEC.md` — the normative protocol (primitives, gateway, metering, scopes, events).
+- `SPEC.md` — the normative protocol (gateway primitives, reference capabilities, metering, scopes, events).
